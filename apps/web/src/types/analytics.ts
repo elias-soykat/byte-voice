@@ -40,7 +40,7 @@ export type DashboardStats = {
   appointmentsByStatus: StatusCount[];
   recentAppointments: Appointment[];
   latestDoctors: Doctor[];
-  callMetrics: CallMetrics;
+  callMetrics?: CallMetrics;
 };
 
 export type AnalyticsData = {
@@ -52,6 +52,6 @@ export type AnalyticsData = {
   appointmentsByStatus: StatusCount[];
   appointmentsTrend: MonthPoint[];
   weeklyAppointments: DayPoint[];
-  callMetrics: CallMetrics;
+  callMetrics?: CallMetrics;
 };
 

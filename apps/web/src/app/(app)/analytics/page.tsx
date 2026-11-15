@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Total Calls"
-                    value={data.callMetrics.totalCalls}
+                    value={data.callMetrics?.totalCalls}
                     icon={PhoneCall}
                     iconBg="bg-slate-100 ring-slate-200"
                     iconColor="text-slate-700"
