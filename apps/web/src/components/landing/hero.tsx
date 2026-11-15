@@ -40,8 +40,8 @@ function Hero() {
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
         {/* Left Column: Messaging & Primary Hero CTA */}
-        <div variants={container} initial="hidden" animate="visible">
-          <div variants={item}>
+        <div >
+          <div >
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-50/80 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 shadow-soft backdrop-blur-sm">
               <Sparkles className="size-3.5 text-emerald-600" />
               {t.hero.badge}
@@ -49,7 +49,7 @@ function Hero() {
           </div>
 
           <h1
-            variants={item}
+
             className="mt-6 text-4xl leading-[1.14] font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl"
           >
             {t.hero.titleStart}{" "}
@@ -58,7 +58,7 @@ function Hero() {
           </h1>
 
           <p
-            variants={item}
+
             className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
             {t.hero.subtitle}
@@ -66,7 +66,7 @@ function Hero() {
 
           {/* Call to action buttons */}
           <div
-            variants={item}
+
             className="mt-8 flex flex-col gap-3.5 sm:flex-row"
           >
             <Button
@@ -108,7 +108,6 @@ function Hero() {
 
           {/* Value Badges */}
           <div
-            variants={item}
             className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-2.5 text-xs font-medium text-muted-foreground"
           >
             <span className="flex items-center gap-1.5 rounded-md bg-emerald-50/60 px-2 py-1 text-emerald-800">
