@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bot, Loader2, Mic } from "lucide-react";
+import { Mic } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -12,87 +12,164 @@ export type OrbMode =
   | "userSpeaking"
   | "agentSpeaking";
 
-// Prop-driven voice orb (adapted from the landing VoiceOrb). The user-speaking
-// state reacts to live mic level; the agent-speaking state is a brand-gradient
-// pulse — two visually distinct "who's talking" looks.
 export function CallOrb({
   mode,
   level = 0,
-  size = 200,
+  size = 180,
 }: {
   mode: OrbMode;
   level?: number;
   size?: number;
 }) {
-  const core = size * 0.5;
-
-  // Mic-reactive scale when the user speaks; gentle breathing otherwise.
+  const core = size * 0.58;
   const userScale = 1 + Math.min(level, 1) * 0.35;
 
   return (
     <div
-      className="relative flex items-center justify-center"
+      className="relative flex items-center justify-center select-none"
       style={{ width: size, height: size }}
     >
-      {/* Outer reactive rings */}
+      {/* Outer ambient glow */}
+      <div
+        className={cn(
+          "absolute inset-0 rounded-full blur-2xl transition-all duration-700",
+          mode === "agentSpeaking"
+            ? "bg-emerald-400/35 scale-125"
+            : mode === "userSpeaking"
+              ? "bg-teal-400/30 scale-115"
+              : mode === "thinking"
+                ? "bg-emerald-500/25 scale-110"
+                : "bg-emerald-500/15 scale-95",
+        )}
+      />
+
+      {/* Concentric soundwave ripples during agent speech */}
       {mode === "agentSpeaking" &&
         [0, 1, 2].map((ring) => (
           <motion.span
             key={ring}
-            className="absolute rounded-full bg-brand-gradient motion-reduce:hidden"
+            className="absolute rounded-full border border-emerald-400/50 bg-emerald-500/10 pointer-events-none"
             style={{ width: size, height: size }}
-            initial={{ opacity: 0.3, scale: 0.6 }}
-            animate={{ opacity: [0.25, 0], scale: [0.6, 1.7] }}
+            initial={{ opacity: 0.6, scale: 0.7 }}
+            animate={{ opacity: [0.6, 0], scale: [0.7, 1.8] }}
             transition={{
-              duration: 1.6,
+              duration: 1.8,
               repeat: Infinity,
-              delay: ring * 0.45,
+              delay: ring * 0.55,
               ease: "easeOut",
             }}
           />
         ))}
 
+      {/* User mic reactive ring */}
       {mode === "userSpeaking" && (
         <motion.span
-          className="absolute rounded-full border-2 border-emerald-400/70"
+          className="absolute rounded-full border-2 border-teal-300/80 bg-teal-400/10 pointer-events-none"
           style={{ width: size, height: size }}
-          animate={{ scale: userScale, opacity: 0.5 }}
-          transition={{ duration: 0.12, ease: "easeOut" }}
+          animate={{ scale: userScale, opacity: [0.7, 0.3] }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
         />
       )}
 
-      {/* Core */}
+      {/* Orbiting halo during thinking */}
+      {mode === "thinking" && (
+        <motion.div
+          className="absolute rounded-full border border-emerald-400/40 border-t-emerald-200 pointer-events-none"
+          style={{ width: core + 28, height: core + 28 }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
+        />
+      )}
+
+      {/* Glowing Sphere Core */}
       <motion.div
         className={cn(
-          "relative z-10 flex items-center justify-center rounded-full shadow-soft-lg",
+          "relative z-10 flex items-center justify-center rounded-full shadow-2xl transition-colors duration-500",
           mode === "userSpeaking"
-            ? "bg-gradient-to-br from-teal-500 to-emerald-400"
-            : "bg-brand-gradient",
+            ? "bg-gradient-to-tr from-teal-600 via-emerald-500 to-teal-300 shadow-teal-500/40"
+            : mode === "agentSpeaking"
+              ? "bg-gradient-to-tr from-emerald-700 via-emerald-500 to-mint-300 shadow-emerald-500/50"
+              : mode === "thinking"
+                ? "bg-gradient-to-tr from-emerald-800 via-teal-600 to-emerald-400 shadow-emerald-500/35"
+                : "bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 shadow-emerald-600/30",
         )}
         style={{ width: core, height: core }}
         animate={
           mode === "userSpeaking"
             ? { scale: userScale }
             : mode === "agentSpeaking"
-              ? { scale: [1, 1.08, 1] }
-              : { scale: [1, 1.04, 1] }
+              ? { scale: [1, 1.06, 1] }
+              : mode === "thinking"
+                ? { scale: [0.97, 1.03, 0.97] }
+                : { scale: [1, 1.02, 1] }
         }
         transition={
           mode === "userSpeaking"
             ? { duration: 0.12, ease: "easeOut" }
             : {
-                duration: mode === "agentSpeaking" ? 0.7 : 2.4,
+                duration: mode === "agentSpeaking" ? 0.8 : mode === "thinking" ? 1.6 : 3,
                 repeat: Infinity,
                 ease: "easeInOut",
               }
         }
       >
-        {mode === "connecting" || mode === "thinking" ? (
-          <Loader2 className="size-8 animate-spin text-white" />
-        ) : mode === "agentSpeaking" ? (
-          <Bot className="size-9 text-white" strokeWidth={2} />
+        {/* Visualizer content based on mode */}
+        {mode === "agentSpeaking" || mode === "userSpeaking" ? (
+          /* Animated audio waveform equalizer bars */
+          <div className="flex items-center gap-1.5 h-10">
+            {[0.4, 0.9, 0.65, 1.0, 0.55].map((scale, i) => (
+              <motion.span
+                key={i}
+                className="w-1.5 rounded-full bg-white shadow-sm"
+                animate={{
+                  height:
+                    mode === "agentSpeaking"
+                      ? ["10px", `${scale * 34}px`, "10px"]
+                      : [
+                          `${8 + level * 14}px`,
+                          `${scale * (20 + level * 26)}px`,
+                          `${8 + level * 14}px`,
+                        ],
+                }}
+                transition={{
+                  duration: 0.45 + i * 0.08,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </div>
+        ) : mode === "thinking" ? (
+          /* 3 rhythmic glowing harmonic dots */
+          <div className="flex items-center gap-2">
+            {[0, 1, 2].map((i) => (
+              <motion.span
+                key={i}
+                className="size-2.5 rounded-full bg-white shadow-md shadow-white/50"
+                animate={{
+                  scale: [0.75, 1.3, 0.75],
+                  opacity: [0.4, 1, 0.4],
+                }}
+                transition={{
+                  duration: 1.0,
+                  repeat: Infinity,
+                  delay: i * 0.22,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </div>
+        ) : mode === "connecting" ? (
+          /* Subtle pulsing ring during connection */
+          <div className="flex items-center justify-center">
+            <span className="size-3 rounded-full bg-white animate-ping opacity-75" />
+          </div>
         ) : (
-          <Mic className="size-9 text-white" strokeWidth={2} />
+          /* Idle: listening state */
+          <div className="flex items-center justify-center">
+            <Mic className="size-7 text-white/95" strokeWidth={2.2} />
+          </div>
         )}
       </motion.div>
     </div>

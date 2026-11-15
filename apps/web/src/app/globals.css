@@ -162,4 +162,13 @@
       0 4px 8px rgba(17, 24, 39, 0.04),
       0 12px 32px rgba(17, 24, 39, 0.08);
   }
+
+  /* scrollbar suppression */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
