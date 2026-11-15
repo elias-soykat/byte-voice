@@ -1,4 +1,4 @@
-# byte care AI — Product Overview
+# Byte Voice AI — Product Overview
 
 > An AI **voice receptionist** platform. Patients call in and talk to it like a person; it answers their
 > questions from the clinic's own documents, books appointments against real doctor schedules, and escalates
@@ -23,7 +23,7 @@ the patients in front of them.
 
 ## What the product does
 
-byte care AI answers the phone. A caller speaks; the system transcribes them, decides what they need,
+byte voice AI answers the phone. A caller speaks; the system transcribes them, decides what they need,
 responds in a natural voice, and takes action — all in one continuous conversation with memory across turns.
 It handles three jobs:
 

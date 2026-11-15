@@ -19,7 +19,7 @@ export const translations = {
       titleGradient: "Bangladeshi Healthcare",
       titleEnd: "",
       subtitle:
-        "Never miss a patient call. ByteVoice answers front-desk calls 24/7 in natural, courteous Bangla. It checks doctor schedules, books dental visits, reads back phone numbers digit by digit, and automatically organizes structured data in your clinic portal.",
+        "Never miss a patient call. ByteVoice answers calls 24/7 in natural Bangla. It checks doctor schedules, books dental visits, reads back phone numbers digit by digit, and organizes data in your clinic portal.",
       ctaPrimary: "Talk to our Bangla caller",
       ctaSecondary: "View Clinic Portal",
       trust1: "Natural Bangla & Code-Switching",
@@ -117,7 +117,7 @@ export const translations = {
       titleGradient: "বাংলা ভয়েস এআই রিসেপশনিস্ট",
       titleEnd: "",
       subtitle:
-        "রোগীর একটি কলও আর মিস হবে না। স্ট্র্যাটেজিবাইট বাইটভয়েস দিনরাত ২৪ ঘণ্টা প্রাকৃতিক ও আন্তরিক বাংলায় কথা বলে। ডাক্তারের শিডিউল দেখে অ্যাপয়েন্টমেন্ট বুক করে, ফোন নম্বর ডিজিট-বাই-ডিজিট মিলিয়ে নেয় এবং ক্লিনিক পোর্টালে সকল ডাটা স্বয়ংক্রিয়ভাবে সাজিয়ে রাখে।",
+        "রোগীর একটি কলও আর মিস হবে না। বাইটভয়েস দিনরাত ২৪ ঘণ্টা স্বাভাবিক বাংলায় কল রিসিভ করে। ডাক্তারের শিডিউল দেখে ডেন্টাল অ্যাপয়েন্টমেন্ট বুক করে, ফোন নম্বর ডিজিট-বাই-ডিজিট পড়ে শোনায় এবং ক্লিনিক পোর্টালে ডেটা সাজিয়ে রাখে।",
       ctaPrimary: "আমাদের বাংলা কলারের সাথে কথা বলুন",
       ctaSecondary: "ক্লিনিক পোর্টাল দেখুন",
       trust1: "প্রাকৃতিক কথ্য বাংলা ও মিক্সড ভাষা",
