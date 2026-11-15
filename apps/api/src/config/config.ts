@@ -1,4 +1,5 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ path: [".env.local", ".env"] });
 
 export const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5500;
 

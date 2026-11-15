@@ -1,4 +1,5 @@
-import "dotenv/config"; // Client reload (v2)
+import dotenv from "dotenv";
+dotenv.config({ path: [".env.local", ".env"] });
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/prisma/client";
 
