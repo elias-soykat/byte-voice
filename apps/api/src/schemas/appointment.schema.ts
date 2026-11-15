@@ -5,6 +5,9 @@ const appointmentBaseSchema = z.object({
   doctorId: z.string().min(1),
   patientName: z.string().min(1),
   patientEmail: z.string().email().optional(),
+  patientPhone: z.string().optional(),
+  callId: z.string().optional(),
+  patientId: z.string().optional(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   status: z.nativeEnum(AppointmentStatus).default(AppointmentStatus.BOOKED),
@@ -22,6 +25,7 @@ export const listAppointmentsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
   doctorId: z.string().trim().min(1).optional(),
+  callId: z.string().trim().min(1).optional(),
   status: z.nativeEnum(AppointmentStatus).optional(),
   search: z.string().trim().optional(),
 });

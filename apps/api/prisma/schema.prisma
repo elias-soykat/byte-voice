@@ -91,7 +91,7 @@ model Appointment {
   doctor       Doctor            @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   patientId    String?
   patient      Patient?          @relation(fields: [patientId], references: [id], onDelete: SetNull)
-  callId       String?           @unique
+  callId       String?
   call         Call?             @relation(fields: [callId], references: [id], onDelete: SetNull)
   patientName  String
   patientEmail String?
@@ -106,6 +106,7 @@ model Appointment {
 
   @@index([doctorId, startTime])
   @@index([patientId])
+  @@index([callId])
 }
 
 model ScheduleException {
@@ -142,8 +143,8 @@ model Call {
   patientId   String?
   patient     Patient?     @relation(fields: [patientId], references: [id], onDelete: SetNull)
 
-  extraction  CallExtraction?
-  appointment Appointment?
+  extraction   CallExtraction?
+  appointments Appointment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

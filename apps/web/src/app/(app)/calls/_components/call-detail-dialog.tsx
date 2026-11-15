@@ -4,6 +4,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  ExternalLink,
   FileText,
   Loader2,
   Phone,
@@ -11,6 +12,7 @@ import {
   TriangleAlert,
   User,
 } from "lucide-react";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { formatDate, formatTime } from "@/lib/datetime";
@@ -144,21 +146,56 @@ export function CallDetailDialog({ call, onClose }: CallDetailDialogProps) {
               )}
 
               {/* Linked Appointment Details */}
-              {data.appointment && (
-                <div className="mt-3.5 flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
-                    <Stethoscope className="size-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                      Booked with {data.appointment.doctor?.name ?? "Specialist"} ({data.appointment.doctor?.speciality})
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {formatDate(data.appointment.startTime)} · {formatTime(data.appointment.startTime)}
-                    </p>
+              {(() => {
+                const linkedAppointments =
+                  data.appointments && data.appointments.length > 0
+                    ? data.appointments
+                    : data.appointment
+                      ? [data.appointment]
+                      : [];
+
+                if (linkedAppointments.length === 0) return null;
+
+                return (
+                  <div className="mt-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                        Linked Appointments ({linkedAppointments.length})
+                      </span>
+                      <Link
+                        href={`/appointments?callId=${encodeURIComponent(data.id)}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+                      >
+                        View in Appointments <ExternalLink className="size-3" />
+                      </Link>
+                    </div>
+                    {linkedAppointments.map((appt) => (
+                      <div
+                        key={appt.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                            <Stethoscope className="size-5" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                              Booked with {appt.doctor?.name ?? "Specialist"}{" "}
+                              ({appt.doctor?.speciality ?? "General"})
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {formatDate(appt.startTime)} · {formatTime(appt.startTime)}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-emerald-500/25 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          {appt.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {/* Audio Recording Player */}

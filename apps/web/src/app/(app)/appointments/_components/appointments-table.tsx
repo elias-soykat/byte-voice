@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, PhoneCall, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 import { formatDate, formatTime } from "@/lib/datetime";
 import type { Appointment } from "@/types/appointment";
@@ -87,7 +88,21 @@ export function AppointmentsTable({
                 {formatTime(appointment.endTime)}
               </TableCell>
               <TableCell>
-                <AppointmentStatusBadge status={appointment.status} />
+                <div className="flex flex-col items-start gap-1">
+                  <AppointmentStatusBadge status={appointment.status} />
+                  {appointment.callId ? (
+                    <Link
+                      href={`/calls?search=${encodeURIComponent(appointment.call?.callId ?? appointment.patientName)}`}
+                      className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-500/20 hover:bg-emerald-100"
+                      title="Booked via AI Voice Call (Click to view Call)"
+                    >
+                      <PhoneCall className="size-2.5 text-emerald-600" />
+                      AI Call
+                    </Link>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Manual</span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>

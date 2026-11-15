@@ -81,6 +81,7 @@ export type BookAppointmentContext = {
   patientName?: string;
   patientEmail?: string;
   patientPhone?: string;
+  callId?: string; // Originating database Call.id
 };
 
 // Factory: builds the book_appointment tool for one conversation, closing over the
@@ -148,6 +149,24 @@ export const makeBookAppointmentTool = (ctx: BookAppointmentContext = {}) =>
       const minutes = durationMinutes ?? DEFAULT_APPOINTMENT_MINUTES;
       const end = new Date(start.getTime() + minutes * 60_000);
 
+      // Idempotency: Prevent duplicate appointments during retries within the same call
+      if (ctx.callId) {
+        const existingForCall = await appointmentsData.findAppointments({
+          skip: 0,
+          take: 1,
+          where: {
+            callId: ctx.callId,
+            doctorId: resolvedId,
+            startTime: start,
+            status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.RESCHEDULED] },
+          },
+        });
+        if (existingForCall.length > 0 && existingForCall[0]) {
+          const existing = existingForCall[0];
+          return `সফলভাবে অ্যাপয়েন্টমেন্ট বুক করা হয়েছে! ডাক্তার: ${doctorName}, রোগী: ${finalName}, শুরু: ${start.toLocaleString("bn-BD")}. (Appointment ID: ${existing.id})`;
+        }
+      }
+
       // Overlap check
       const clash = await appointmentsData.findAppointments({
         skip: 0,
@@ -169,6 +188,7 @@ export const makeBookAppointmentTool = (ctx: BookAppointmentContext = {}) =>
         startTime: start,
         endTime: end,
         status: AppointmentStatus.BOOKED,
+        ...(ctx.callId ? { callId: ctx.callId } : {}),
         ...(ctx.patientEmail ? { patientEmail: ctx.patientEmail } : {}),
         ...(finalPhone ? { patientPhone: finalPhone } : {}),
         ...(reason ? { reason } : {}),
@@ -293,6 +313,7 @@ export const makeRescheduleAppointmentTool = (ctx: BookAppointmentContext = {}) 
         startTime: start,
         endTime: end,
         status: AppointmentStatus.RESCHEDULED,
+        ...(ctx.callId ? { callId: ctx.callId } : {}),
       });
 
       const doctorName = targetAppointment.doctor?.name ?? "ডাক্তার";

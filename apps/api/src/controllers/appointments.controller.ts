@@ -28,11 +28,12 @@ export const createAppointment = async (req: Request, res: Response) => {
 // getAppointments (paginated, filterable by doctorId/status, searchable by patient)
 export const getAppointments = async (req: Request, res: Response) => {
   try {
-    const { page, limit, doctorId, status, search } =
+    const { page, limit, doctorId, callId, status, search } =
       listAppointmentsQuerySchema.parse(req.query);
 
     const where: Prisma.AppointmentWhereInput = {};
     if (doctorId) where.doctorId = doctorId;
+    if (callId) where.callId = callId;
     if (status) where.status = status;
     if (search) {
       where.patientName = { contains: search, mode: "insensitive" };

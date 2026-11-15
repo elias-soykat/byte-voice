@@ -182,7 +182,7 @@ export const processCallExtraction = async (params: {
         ? "INVALID_PHONE"
         : "NEEDS_REVIEW";
 
-    // Verify whether an appointment was actually persisted in the DB
+    // Verify appointments persisted in the DB with deterministic callId linkage
     let verifiedAppointment: {
       id: string;
       doctorName: string;
@@ -192,51 +192,59 @@ export const processCallExtraction = async (params: {
     let appointmentRecorded = false;
 
     try {
-      let linkedAppointment = await prisma.appointment.findFirst({
-        where: {
-          OR: [
-            { callId: callDbId },
-            ...(patientId ? [{ patientId }] : []),
-            ...(normalizedPhone ? [{ patientPhone: normalizedPhone }] : []),
-            ...(patientName
-              ? [
-                  {
-                    patientName,
-                    createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
-                  },
-                ]
-              : []),
-          ],
-        },
-        orderBy: { createdAt: "desc" },
+      // 1. Direct relational lookup via foreign key callId (supporting 1-to-many appointments)
+      let linkedAppointments = await prisma.appointment.findMany({
+        where: { callId: callDbId },
+        orderBy: { startTime: "asc" },
         include: { doctor: { select: { id: true, name: true, speciality: true } } },
       });
 
-      if (linkedAppointment) {
-        if (!linkedAppointment.callId) {
-          linkedAppointment = await prisma.appointment.update({
-            where: { id: linkedAppointment.id },
-            data: {
-              callId: callDbId,
-              ...(patientId && !linkedAppointment.patientId ? { patientId } : {}),
-              ...(normalizedPhone && !linkedAppointment.patientPhone
-                ? { patientPhone: normalizedPhone }
-                : {}),
-            },
+      // 2. Fallback only if no appointments were directly linked
+      if (linkedAppointments.length === 0 && patientId) {
+        const unlinked = await prisma.appointment.findFirst({
+          where: {
+            patientId,
+            callId: null,
+          },
+          orderBy: { createdAt: "desc" },
+          include: { doctor: { select: { id: true, name: true, speciality: true } } },
+        });
+
+        if (unlinked) {
+          const updated = await prisma.appointment.update({
+            where: { id: unlinked.id },
+            data: { callId: callDbId },
             include: { doctor: { select: { id: true, name: true, speciality: true } } },
           });
+          linkedAppointments = [updated];
         }
+      }
 
+      if (linkedAppointments.length > 0) {
+        const primary = linkedAppointments[0]!;
         verifiedAppointment = {
-          id: linkedAppointment.id,
-          doctorName: linkedAppointment.doctor.name,
-          doctorSpeciality: linkedAppointment.doctor.speciality,
-          startTime: linkedAppointment.startTime.toISOString(),
+          id: primary.id,
+          doctorName: primary.doctor.name,
+          doctorSpeciality: primary.doctor.speciality,
+          startTime: primary.startTime.toISOString(),
         };
-        appointmentRecorded = linkedAppointment.status === "BOOKED";
+        appointmentRecorded = linkedAppointments.some(
+          (a) => a.status === "BOOKED" || a.status === "RESCHEDULED",
+        );
+
+        // Maintain patient relationship integrity across all appointments linked to this call
+        if (patientId) {
+          await prisma.appointment.updateMany({
+            where: { callId: callDbId, patientId: null },
+            data: {
+              patientId,
+              ...(normalizedPhone ? { patientPhone: normalizedPhone } : {}),
+            },
+          });
+        }
       }
     } catch (apptErr) {
-      console.error("[callExtractor] Error verifying linked appointment:", apptErr);
+      console.error("[callExtractor] Error verifying linked appointments:", apptErr);
     }
 
     // Truth-in-booking: Only claim BOOKED if an actual appointment record exists in DB

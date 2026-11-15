@@ -17,6 +17,7 @@ export const AgentState = z.object({
   }),
   input: z.string(),
   sessionId: z.string(),
+  callId: z.string().optional(),
   patientName: z.string().optional(),
   email: z.string().optional(),
   route: z.enum(["faq", "appointment", "emergency"]).optional(),

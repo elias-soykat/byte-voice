@@ -60,24 +60,41 @@ export const finalizeCall = async (
   }
 
   try {
-    const created = await callsData.createCall({
-      callId: session.callId,
-      startedAt: new Date(session.startedAt),
-      endedAt: new Date(endedAt),
-      durationSec,
-      userTurns: session.userTurns,
-      transcript,
-      ...(audioKey ? { audioKey } : {}),
-      status,
-      ...(session.patientName ? { patientName: session.patientName } : {}),
-    });
-    console.log(`[call] saved ${session.callId} (status ${status})`);
+    let callDbId = session.callDbId;
+    if (callDbId) {
+      await callsData.updateCall(callDbId, {
+        endedAt: new Date(endedAt),
+        durationSec,
+        userTurns: session.userTurns,
+        transcript,
+        ...(audioKey ? { audioKey } : {}),
+        status,
+        ...(session.patientName ? { patientName: session.patientName } : {}),
+      });
+      console.log(
+        `[call] updated call ${session.callId} (dbId ${callDbId}, status ${status})`,
+      );
+    } else {
+      const created = await callsData.createCall({
+        callId: session.callId,
+        startedAt: new Date(session.startedAt),
+        endedAt: new Date(endedAt),
+        durationSec,
+        userTurns: session.userTurns,
+        transcript,
+        ...(audioKey ? { audioKey } : {}),
+        status,
+        ...(session.patientName ? { patientName: session.patientName } : {}),
+      });
+      callDbId = created.id;
+      console.log(`[call] saved ${session.callId} (status ${status})`);
+    }
 
     // Await clinical extraction to verify DB persistence and get real summary
     let extractionResult = null;
     try {
       extractionResult = await processCallExtraction({
-        callDbId: created.id,
+        callDbId,
         callSessionId: session.callId,
         transcript: session.transcript,
         ...(session.patientName ? { fallbackPatientName: session.patientName } : {}),

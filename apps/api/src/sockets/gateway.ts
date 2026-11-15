@@ -14,6 +14,8 @@ import {
 } from "./session";
 import { runVoiceTurn, sendGreeting } from "./handlers/voice-turn";
 import { finalizeCall } from "../helpers/callRecording";
+import * as callsData from "../data/calls.data";
+import { CallOutcome } from "../generated/prisma/enums";
 
 type CallServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type CallSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -27,13 +29,45 @@ export const registerSocketHandlers = (io: CallServer): void => {
       `[socket] Client connected: ${socket.id} (transport: ${socket.conn.transport.name})`,
     );
 
-    socket.on(SocketEvent.CallStart, (payload) => {
+    socket.on(SocketEvent.CallStart, async (payload) => {
       // Payload is defensively optional so a client that omits it still works.
       const session = createSession(socket.id, {
         ...(payload?.patientName ? { patientName: payload.patientName } : {}),
         ...(payload?.email ? { email: payload.email } : {}),
       });
-      console.log(`[call] start ${session.callId} (socket ${socket.id})`);
+
+      // Requirement 1: Create the database Call record when a voice call starts, not when it ends.
+      // Store its database ID (callDbId) in the active CallSession.
+      // Never silently continue if initial Call record creation fails.
+      try {
+        const callRecord = await callsData.createCall({
+          callId: session.callId,
+          startedAt: new Date(session.startedAt),
+          endedAt: new Date(session.startedAt),
+          durationSec: 0,
+          userTurns: 0,
+          transcript: [],
+          status: "IN_PROGRESS",
+          outcome: CallOutcome.INCOMPLETE,
+          ...(session.patientName ? { patientName: session.patientName } : {}),
+        });
+        session.callDbId = callRecord.id;
+        console.log(
+          `[call] start ${session.callId} (dbId: ${callRecord.id}, socket ${socket.id})`,
+        );
+      } catch (dbErr) {
+        console.error(
+          `[call] critical error: failed to create initial call record for ${session.callId}:`,
+          dbErr,
+        );
+        socket.emit(SocketEvent.CallError, {
+          message:
+            "দুঃখিত, কলটি শুরু করা সম্ভব হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+        });
+        endSession(socket.id);
+        return;
+      }
+
       socket.emit(SocketEvent.CallReady, {
         callId: session.callId,
         initialTurnId: session.currentTurnId,

@@ -12,6 +12,16 @@ export const createAppointment = (data: CreateAppointmentInput) =>
 
 const doctorInclude = {
   doctor: { select: { id: true, name: true, speciality: true } },
+  call: {
+    select: {
+      id: true,
+      callId: true,
+      startedAt: true,
+      durationSec: true,
+      status: true,
+      outcome: true,
+    },
+  },
 } satisfies Prisma.AppointmentInclude;
 
 export const findAppointments = (args: {

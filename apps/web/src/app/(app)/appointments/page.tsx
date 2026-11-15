@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Plus, TriangleAlert } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { CalendarDays, Plus, TriangleAlert, X } from "lucide-react";
+import Link from "next/link";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,9 @@ import { APPOINTMENT_STATUSES } from "./_components/appointment-status-badge";
 const PAGE_SIZE = 8;
 
 export default function AppointmentsPage() {
+  const searchParams = useSearchParams();
+  const callIdParam = searchParams.get("callId") || undefined;
+
   const [search, setSearch] = useState("");
   const [doctorId, setDoctorId] = useState("all");
   const [status, setStatus] = useState<AppointmentStatus | "all">("all");
@@ -50,7 +55,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, doctorId, status]);
+  }, [debouncedSearch, doctorId, status, callIdParam]);
 
   const doctorsQuery = useDoctors({ limit: 100 });
   const query = useAppointments({
@@ -59,6 +64,7 @@ export default function AppointmentsPage() {
     search: debouncedSearch || undefined,
     doctorId: doctorId === "all" ? undefined : doctorId,
     status: status === "all" ? undefined : status,
+    callId: callIdParam,
   });
   const deleteAppointment = useDeleteAppointment();
 
@@ -68,7 +74,7 @@ export default function AppointmentsPage() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const doctors = doctorsQuery.data?.items ?? [];
   const hasFilters =
-    debouncedSearch.length > 0 || doctorId !== "all" || status !== "all";
+    debouncedSearch.length > 0 || doctorId !== "all" || status !== "all" || !!callIdParam;
 
   function openCreate() {
     setEditing(null);
@@ -134,6 +140,23 @@ export default function AppointmentsPage() {
           </Select>
         </div>
       </div>
+
+      {callIdParam && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-500/25 bg-emerald-50/50 px-3.5 py-2 text-xs font-medium text-emerald-900">
+          <div className="flex items-center gap-2">
+            <span>Filtered by Originating Call:</span>
+            <code className="rounded bg-emerald-100/70 px-1.5 py-0.5 font-mono text-[11px] text-emerald-800">
+              {callIdParam}
+            </code>
+          </div>
+          <Link
+            href="/appointments"
+            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+          >
+            Clear Filter <X className="size-3" />
+          </Link>
+        </div>
+      )}
 
       {isPending ? (
         <AppointmentsTableSkeleton />

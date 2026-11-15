@@ -5,6 +5,7 @@ import { agentGraph } from "./graph";
 
 export type RunAgentInput = {
   sessionId: string;
+  callId?: string;
   message: string;
   patientName?: string;
   email?: string;
@@ -33,6 +34,7 @@ export const runAgent = async (
         input: input.message,
         messages: [new HumanMessage(input.message)],
         sessionId: input.sessionId,
+        ...(input.callId ? { callId: input.callId } : {}),
         ...(input.patientName ? { patientName: input.patientName } : {}),
         ...(input.email ? { email: input.email } : {}),
       },

@@ -20,6 +20,21 @@ const callListInclude = {
       validationStatus: true,
     },
   },
+  appointments: {
+    select: {
+      id: true,
+      startTime: true,
+      endTime: true,
+      status: true,
+      doctor: {
+        select: {
+          id: true,
+          name: true,
+          speciality: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.CallInclude;
 
 export const createCall = (data: {
@@ -70,7 +85,7 @@ export const findCallById = (id: string) =>
     include: {
       patient: true,
       extraction: true,
-      appointment: {
+      appointments: {
         include: { doctor: true },
       },
     },

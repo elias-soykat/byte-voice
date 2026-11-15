@@ -12,6 +12,7 @@ export type Appointment = {
   endTime: string; // ISO datetime
   status: AppointmentStatus;
   reason?: string | null;
+  callId?: string | null;
   createdAt: string;
   updatedAt: string;
   doctor?: {
@@ -19,6 +20,14 @@ export type Appointment = {
     name: string;
     speciality: string;
   };
+  call?: {
+    id: string;
+    callId: string;
+    durationSec: number;
+    startedAt: string;
+    status: string;
+    outcome: string;
+  } | null;
 };
 
 export type CreateAppointmentInput = {
@@ -43,6 +52,7 @@ export type ListAppointmentsParams = {
   page?: number;
   limit?: number;
   doctorId?: string;
+  callId?: string;
   status?: AppointmentStatus;
   search?: string;
 };

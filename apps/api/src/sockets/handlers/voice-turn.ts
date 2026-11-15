@@ -157,6 +157,7 @@ export const runVoiceTurn = async (
 
     const agentResult = await runAgent({
       sessionId: session.callId,
+      ...(session.callDbId ? { callId: session.callDbId } : {}),
       message: transcript,
       ...(session.patientName ? { patientName: session.patientName } : {}),
       ...(session.email ? { email: session.email } : {}),

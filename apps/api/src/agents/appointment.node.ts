@@ -32,10 +32,12 @@ export const appointmentNode = async (
   ).format({ now: new Date().toISOString() });
 
   const bookAppointmentTool = makeBookAppointmentTool({
+    ...(state.callId ? { callId: state.callId } : {}),
     ...(state.patientName ? { patientName: state.patientName } : {}),
     ...(state.email ? { patientEmail: state.email } : {}),
   });
   const rescheduleAppointmentTool = makeRescheduleAppointmentTool({
+    ...(state.callId ? { callId: state.callId } : {}),
     ...(state.patientName ? { patientName: state.patientName } : {}),
     ...(state.email ? { patientEmail: state.email } : {}),
   });

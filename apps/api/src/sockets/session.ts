@@ -26,6 +26,7 @@ export type TranscriptEntry = {
 
 export type CallSession = {
   callId: string;
+  callDbId?: string; // Database cuid (Call.id)
   socketId: string;
   startedAt: number;
   bytesReceived: number;

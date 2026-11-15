@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, PhoneCall, User } from "lucide-react";
+import { CalendarCheck, Phone, PhoneCall, User } from "lucide-react";
 
 import { formatDate, formatTime } from "@/lib/datetime";
 import type { CallSummary } from "@/types/call";
@@ -84,7 +84,17 @@ export function CallsTable({ calls, onSelect }: CallsTableProps) {
                 </TableCell>
 
                 <TableCell>
-                  <CallOutcomeBadge outcome={call.outcome} />
+                  <div className="flex flex-col items-start gap-1">
+                    <CallOutcomeBadge outcome={call.outcome} />
+                    {call.appointments && call.appointments.length > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-500/20">
+                        <CalendarCheck className="size-3" />
+                        {call.appointments.length === 1
+                          ? "1 Appointment"
+                          : `${call.appointments.length} Appointments`}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
 
                 <TableCell>

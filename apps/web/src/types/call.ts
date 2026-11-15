@@ -64,12 +64,14 @@ export type CallSummary = {
   createdAt: string;
   patient?: PatientSummary | null;
   extraction?: CallExtractionData | null;
+  appointments?: AppointmentSummary[];
 };
 
 export type CallDetail = CallSummary & {
   transcript: TranscriptEntry[];
   audioUrl: string | null;
   appointment?: AppointmentSummary | null;
+  appointments?: AppointmentSummary[];
 };
 
 export type CallsPage = {
