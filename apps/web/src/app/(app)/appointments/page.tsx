@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, Plus, TriangleAlert, X } from "lucide-react";
 import Link from "next/link";
@@ -39,7 +39,7 @@ import { APPOINTMENT_STATUSES } from "./_components/appointment-status-badge";
 
 const PAGE_SIZE = 8;
 
-export default function AppointmentsPage() {
+function AppointmentsContent() {
   const searchParams = useSearchParams();
   const callIdParam = searchParams.get("callId") || undefined;
 
@@ -261,5 +261,13 @@ export default function AppointmentsPage() {
         onOpenChange={setDialogOpen}
       />
     </div>
+  );
+}
+
+export default function AppointmentsPage() {
+  return (
+    <Suspense fallback={<AppointmentsTableSkeleton />}>
+      <AppointmentsContent />
+    </Suspense>
   );
 }
