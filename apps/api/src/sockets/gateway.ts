@@ -5,7 +5,13 @@ import {
   type ServerToClientEvents,
 } from "@repo/shared";
 
-import { appendAudio, createSession, endSession, getSession } from "./session";
+import {
+  appendAudio,
+  createSession,
+  endSession,
+  getSession,
+  interruptSession,
+} from "./session";
 import { runVoiceTurn, sendGreeting } from "./handlers/voice-turn";
 import { finalizeCall } from "../helpers/callRecording";
 
@@ -17,7 +23,10 @@ type CallSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 // handlers/voice-turn.
 export const registerSocketHandlers = (io: CallServer): void => {
   io.on("connection", (socket: CallSocket) => {
-    console.log(`[socket] Client connected: ${socket.id} (transport: ${socket.conn.transport.name})`);
+    console.log(
+      `[socket] Client connected: ${socket.id} (transport: ${socket.conn.transport.name})`,
+    );
+
     socket.on(SocketEvent.CallStart, (payload) => {
       // Payload is defensively optional so a client that omits it still works.
       const session = createSession(socket.id, {
@@ -25,7 +34,10 @@ export const registerSocketHandlers = (io: CallServer): void => {
         ...(payload?.email ? { email: payload.email } : {}),
       });
       console.log(`[call] start ${session.callId} (socket ${socket.id})`);
-      socket.emit(SocketEvent.CallReady, { callId: session.callId });
+      socket.emit(SocketEvent.CallReady, {
+        callId: session.callId,
+        initialTurnId: session.currentTurnId,
+      });
       // Agent greets first (spoken), by name when we have it.
       void sendGreeting(socket, session.patientName);
     });
@@ -37,13 +49,22 @@ export const registerSocketHandlers = (io: CallServer): void => {
       appendAudio(socket.id, buffer);
     });
 
-    socket.on(SocketEvent.UserTurnEnd, () => {
+    socket.on(SocketEvent.UserTurnEnd, (payload) => {
       const session = getSession(socket.id);
       if (!session) return;
       console.log(
-        `[call] user turn end ${session.callId} (${session.bytesReceived} bytes received)`,
+        `[call] user turn end ${session.callId} (turn ${payload?.turnId ?? session.currentTurnId}, ${session.bytesReceived} bytes received)`,
       );
-      void runVoiceTurn(socket);
+      void runVoiceTurn(socket, payload?.turnId);
+    });
+
+    socket.on(SocketEvent.UserInterrupt, (payload) => {
+      const session = getSession(socket.id);
+      if (!session) return;
+      console.log(
+        `[call] user interrupt on ${session.callId} (turn ${payload?.turnId ?? session.currentTurnId}, playbackMs: ${payload?.agentPlaybackMs ?? "unknown"})`,
+      );
+      interruptSession(socket.id, payload?.turnId, payload?.agentPlaybackMs);
     });
 
     const cleanup = (reason: string) => {

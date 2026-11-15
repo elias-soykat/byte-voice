@@ -23,6 +23,7 @@ function pickMimeType(): string | undefined {
 export type UtteranceRecorder = {
   start: () => void;
   stop: () => Promise<ArrayBuffer | null>;
+  cancel: () => void;
   isRecording: () => boolean;
 };
 
@@ -63,24 +64,42 @@ export function createUtteranceRecorder(stream: MediaStream): UtteranceRecorder 
       active.stop();
     });
 
+  const cancel = () => {
+    if (recorder && recorder.state !== "inactive") {
+      recorder.onstop = null;
+      recorder.ondataavailable = null;
+      recorder.stop();
+    }
+    chunks = [];
+    recorder = null;
+  };
+
   return {
     start,
     stop,
+    cancel,
     isRecording: () => recorder?.state === "recording",
   };
 }
 
-const SPEAK_THRESHOLD = 0.08; // RMS above this = speaking
-const SILENCE_MS = 1200; // silence after speech = end of turn
+// Tuned for natural Bengali dialogue:
+// - SPEAK_THRESHOLD (0.08 RMS): Sensitive enough for soft speech, high enough to filter baseline room noise.
+// - SILENCE_MS (700ms): Down from 1200ms. Leaves room for natural intra-sentence pauses without sluggish latency.
+// - INTERRUPT_DEBOUNCE_MS (140ms): Requires sustained user vocalization before triggering barge-in,
+//   preventing mic taps or quick coughs from killing agent playback.
+const SPEAK_THRESHOLD = 0.08;
+const SILENCE_MS = 700;
+const INTERRUPT_DEBOUNCE_MS = 140;
 
 type LevelMeterCallbacks = {
   onLevel: (level: number) => void;
   onSpeakingChange: (speaking: boolean) => void;
   onTurnEnd: () => void;
+  onInterruption?: () => void;
 };
 
-// Drives the user-speaking animation (mic level) and detects end-of-turn
-// (a stretch of silence after the user has spoken).
+// Drives the user-speaking animation (mic level), detects genuine voice barge-in,
+// and detects end-of-turn (silence after the user has spoken).
 export function createLevelMeter(
   stream: MediaStream,
   callbacks: LevelMeterCallbacks,
@@ -100,6 +119,8 @@ export function createLevelMeter(
   let speaking = false;
   let spokeThisTurn = false;
   let silenceStart = 0;
+  let speechStart = 0;
+  let interruptionFired = false;
 
   const tick = () => {
     analyser.getByteTimeDomainData(data);
@@ -117,7 +138,16 @@ export function createLevelMeter(
       if (!speaking) {
         speaking = true;
         spokeThisTurn = true;
+        speechStart = now;
+        interruptionFired = false;
         callbacks.onSpeakingChange(true);
+      } else if (
+        !interruptionFired &&
+        now - speechStart >= INTERRUPT_DEBOUNCE_MS
+      ) {
+        // Sustained speech confirmed — trigger barge-in cutoff
+        interruptionFired = true;
+        callbacks.onInterruption?.();
       }
       silenceStart = now;
     } else if (speaking) {
@@ -126,6 +156,7 @@ export function createLevelMeter(
       silenceStart = now;
     } else if (spokeThisTurn && now - silenceStart > SILENCE_MS) {
       spokeThisTurn = false;
+      interruptionFired = false;
       callbacks.onTurnEnd();
     }
 

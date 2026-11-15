@@ -9,6 +9,7 @@ export const SocketEvent = {
   CallStart: "call:start",
   AudioChunk: "audio:chunk",
   UserTurnEnd: "user:turn-end",
+  UserInterrupt: "user:interrupt",
   CallEnd: "call:end",
 
   // server -> client
@@ -29,10 +30,17 @@ export const AUDIO_MIME = "audio/webm;codecs=opus";
 
 /** Caller details sent with `call:start` (optional). */
 export type CallStartPayload = { patientName?: string; email?: string };
-export type CallReadyPayload = { callId: string };
+export type CallReadyPayload = { callId: string; initialTurnId?: number };
 export type CallErrorPayload = { message: string };
-export type TranscriptFinalPayload = { text: string };
-export type AgentResponsePayload = { text: string; route: string | null };
+export type TranscriptFinalPayload = { text: string; turnId?: number };
+export type AgentResponsePayload = {
+  text: string;
+  route: string | null;
+  turnId?: number;
+};
+export type UserTurnEndPayload = { turnId?: number };
+export type UserInterruptPayload = { turnId?: number; agentPlaybackMs?: number };
+export type TtsAudioMeta = { turnId?: number };
 
 /** Events the server emits to the client. */
 export interface ServerToClientEvents {
@@ -41,8 +49,8 @@ export interface ServerToClientEvents {
   "transcript:final": (payload: TranscriptFinalPayload) => void;
   /** The agent's reply text (caption). */
   "agent:response": (payload: AgentResponsePayload) => void;
-  /** The agent's spoken reply as mp3 audio. */
-  "tts:audio": (audio: ArrayBuffer) => void;
+  /** The agent's spoken reply as mp3 audio with optional turn metadata. */
+  "tts:audio": (audio: ArrayBuffer, meta?: TtsAudioMeta) => void;
   "agent:speaking:start": () => void;
   "agent:speaking:stop": () => void;
   "call:error": (payload: CallErrorPayload) => void;
@@ -54,6 +62,10 @@ export interface ClientToServerEvents {
   "call:start": (payload: CallStartPayload) => void;
   /** Binary mic audio (webm/opus). Arrives as a Buffer on the server. */
   "audio:chunk": (chunk: ArrayBuffer) => void;
-  "user:turn-end": () => void;
+  /** User finished an utterance turn. */
+  "user:turn-end": (payload?: UserTurnEndPayload) => void;
+  /** User interrupted the agent's response/playback. */
+  "user:interrupt": (payload?: UserInterruptPayload) => void;
+  /** Caller hangs up. */
   "call:end": () => void;
 }

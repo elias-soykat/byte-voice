@@ -11,12 +11,17 @@ export type AudioSegment = {
   audio: Buffer;
   format: "webm" | "mp3";
   at: number;
+  turnId?: number;
+  interrupted?: boolean;
+  durationMs?: number;
 };
 
 export type TranscriptEntry = {
   role: CallRole;
   text: string;
   at: number;
+  turnId?: number;
+  interrupted?: boolean;
 };
 
 export type CallSession = {
@@ -30,6 +35,8 @@ export type CallSession = {
   segments: AudioSegment[];
   transcript: TranscriptEntry[];
   userTurns: number;
+  currentTurnId: number;
+  abortController: AbortController;
   // Caller details from the pre-call form (optional — old clients may omit them).
   patientName?: string;
   email?: string;
@@ -51,6 +58,8 @@ export const createSession = (
     segments: [],
     transcript: [],
     userTurns: 0,
+    currentTurnId: 1,
+    abortController: new AbortController(),
     ...(meta?.patientName ? { patientName: meta.patientName } : {}),
     ...(meta?.email ? { email: meta.email } : {}),
   };
@@ -95,8 +104,98 @@ export const appendTranscript = (
   session.transcript.push(entry);
 };
 
+/**
+ * Handle an explicit user barge-in / interruption:
+ * 1. Abort any in-flight LLM/STT/TTS generation for this session.
+ * 2. Reset agentSpeaking flag.
+ * 3. Reconcile recorded audio segments with real playback duration.
+ * 4. Discard audio buffered prior to the interrupt.
+ * 5. Advance the turn counter so pending responses from older turns are rejected.
+ */
+export const interruptSession = (
+  socketId: string,
+  turnId?: number,
+  agentPlaybackMs?: number,
+): void => {
+  const session = sessions.get(socketId);
+  if (!session) return;
+
+  // Stale interrupt check (if turnId is provided and strictly older than current turn)
+  if (typeof turnId === "number" && turnId < session.currentTurnId) {
+    return;
+  }
+
+  // Cancel any active provider calls (Deepgram, OpenAI, Sarvam)
+  session.abortController.abort();
+  session.abortController = new AbortController();
+
+  session.agentSpeaking = false;
+
+  // Clear stale buffered audio chunks recorded during the interrupted turn
+  session.audioChunks = [];
+
+  // Reconcile the last agent audio segment and transcript entry if interrupted
+  if (session.segments.length > 0) {
+    const lastAgentSeg = [...session.segments]
+      .reverse()
+      .find((s) => s.role === "agent");
+
+    if (lastAgentSeg) {
+      lastAgentSeg.interrupted = true;
+      if (typeof agentPlaybackMs === "number") {
+        if (agentPlaybackMs < 250) {
+          // If interrupted almost immediately, remove segment from the final merged recording
+          const idx = session.segments.indexOf(lastAgentSeg);
+          if (idx !== -1) {
+            session.segments.splice(idx, 1);
+          }
+        } else {
+          lastAgentSeg.durationMs = Math.round(agentPlaybackMs);
+        }
+      }
+    }
+  }
+
+  if (session.transcript.length > 0) {
+    const lastAgentTx = [...session.transcript]
+      .reverse()
+      .find((t) => t.role === "agent");
+    if (lastAgentTx) {
+      lastAgentTx.interrupted = true;
+    }
+  }
+
+  // Advance turn ID to invalidate any stale late-arriving async responses
+  session.currentTurnId += 1;
+};
+
+/**
+ * Reset / renew the session's AbortController before starting a fresh turn.
+ */
+export const renewTurnAbortSignal = (
+  socketId: string,
+  turnId?: number,
+): AbortSignal | undefined => {
+  const session = sessions.get(socketId);
+  if (!session) return undefined;
+
+  if (typeof turnId === "number") {
+    session.currentTurnId = Math.max(session.currentTurnId, turnId);
+  }
+
+  // Abort any existing in-flight work before beginning a new turn
+  if (!session.abortController.signal.aborted) {
+    session.abortController.abort();
+  }
+  session.abortController = new AbortController();
+  return session.abortController.signal;
+};
+
 export const endSession = (socketId: string): CallSession | undefined => {
   const session = sessions.get(socketId);
+  if (session) {
+    session.abortController.abort();
+  }
   sessions.delete(socketId);
   return session;
 };

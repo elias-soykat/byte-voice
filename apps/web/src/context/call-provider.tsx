@@ -10,7 +10,13 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-import { SocketEvent } from "@repo/shared";
+import {
+  SocketEvent,
+  type TtsAudioMeta,
+  type AgentResponsePayload,
+  type TranscriptFinalPayload,
+  type CallReadyPayload,
+} from "@repo/shared";
 import { createCallSocket, type CallSocket } from "@/lib/socket";
 import {
   createLevelMeter,
@@ -64,11 +70,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const recorderRef = useRef<UtteranceRecorder | null>(null);
   const meterCleanupRef = useRef<(() => void) | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
-  const audioQueueRef = useRef<string[]>([]);
+  const audioQueueRef = useRef<{ url: string; turnId?: number }[]>([]);
   const playingRef = useRef(false);
   const mutedRef = useRef(false);
   const agentSpeakingRef = useRef(false);
+  const userSpeakingRef = useRef(false);
   const captionId = useRef(0);
+
+  // Turn management & barge-in tracking
+  const turnIdRef = useRef(1);
+  const interruptedTurnsRef = useRef<Set<number>>(new Set());
 
   const addCaption = useCallback((role: "user" | "agent", text: string) => {
     captionId.current += 1;
@@ -78,20 +89,57 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, []);
 
-  const teardown = useCallback(() => {
-    meterCleanupRef.current?.();
-    meterCleanupRef.current = null;
-    recorderRef.current = null;
-
+  // Stops any playing audio, flushes queued buffers, and revokes URLs immediately.
+  const stopAndClearAgentPlayback = useCallback((): number => {
+    let playbackDurationMs = 0;
     if (audioElRef.current) {
+      playbackDurationMs = (audioElRef.current.currentTime || 0) * 1000;
       audioElRef.current.pause();
+      audioElRef.current.currentTime = 0;
       audioElRef.current.src = "";
-      audioElRef.current = null;
     }
-    audioQueueRef.current.forEach((url) => URL.revokeObjectURL(url));
+    audioQueueRef.current.forEach((item) => URL.revokeObjectURL(item.url));
     audioQueueRef.current = [];
     playingRef.current = false;
     agentSpeakingRef.current = false;
+    setAgentSpeaking(false);
+    setProcessing(false);
+    return playbackDurationMs;
+  }, []);
+
+  // Explicit user interruption / barge-in handler
+  const interruptAgent = useCallback(
+    (_reason = "voice-barge-in") => {
+      const wasAgentActive = agentSpeakingRef.current || playingRef.current;
+      const playedMs = stopAndClearAgentPlayback();
+
+      const activeTurn = turnIdRef.current;
+      interruptedTurnsRef.current.add(activeTurn);
+
+      if (socketRef.current?.connected) {
+        socketRef.current.emit(SocketEvent.UserInterrupt, {
+          turnId: activeTurn,
+          agentPlaybackMs: wasAgentActive ? playedMs : 0,
+        });
+      }
+    },
+    [stopAndClearAgentPlayback],
+  );
+
+  const teardown = useCallback(() => {
+    meterCleanupRef.current?.();
+    meterCleanupRef.current = null;
+
+    if (recorderRef.current) {
+      recorderRef.current.cancel();
+      recorderRef.current = null;
+    }
+
+    stopAndClearAgentPlayback();
+
+    if (audioElRef.current) {
+      audioElRef.current = null;
+    }
 
     if (streamRef.current) {
       stopStream(streamRef.current);
@@ -102,7 +150,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-  }, []);
+    interruptedTurnsRef.current.clear();
+  }, [stopAndClearAgentPlayback]);
 
   const endCall = useCallback(() => {
     if (socketRef.current?.connected) {
@@ -117,24 +166,46 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setMuted(false);
     setTranscript([]);
     mutedRef.current = false;
+    userSpeakingRef.current = false;
   }, [teardown]);
 
   const playNext = useCallback(() => {
     if (playingRef.current) return;
-    const url = audioQueueRef.current.shift();
+
+    // Discard any queued chunks from interrupted turns
+    while (
+      audioQueueRef.current.length > 0 &&
+      audioQueueRef.current[0]?.turnId !== undefined &&
+      interruptedTurnsRef.current.has(audioQueueRef.current[0].turnId)
+    ) {
+      const stale = audioQueueRef.current.shift();
+      if (stale) URL.revokeObjectURL(stale.url);
+    }
+
+    const nextItem = audioQueueRef.current.shift();
     const audio = audioElRef.current;
-    if (!url || !audio) {
+    if (!nextItem || !audio) {
       setAgentSpeaking(false);
       agentSpeakingRef.current = false;
       return;
     }
+
+    // If user is currently speaking, do not start playing agent audio
+    if (userSpeakingRef.current) {
+      URL.revokeObjectURL(nextItem.url);
+      setAgentSpeaking(false);
+      agentSpeakingRef.current = false;
+      return;
+    }
+
     playingRef.current = true;
     setProcessing(false);
     setAgentSpeaking(true);
     agentSpeakingRef.current = true;
-    audio.src = url;
+    audio.src = nextItem.url;
+
     audio.onended = () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(nextItem.url);
       playingRef.current = false;
       if (audioQueueRef.current.length === 0) {
         setAgentSpeaking(false);
@@ -142,19 +213,30 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
       playNext();
     };
+
     audio.play().catch(() => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(nextItem.url);
       playingRef.current = false;
       playNext();
     });
   }, []);
 
   const enqueueAudio = useCallback(
-    (buffer: ArrayBuffer) => {
+    (buffer: ArrayBuffer, meta?: TtsAudioMeta) => {
+      // Discard audio if caller is currently speaking or if turn was interrupted
+      if (
+        userSpeakingRef.current ||
+        (meta?.turnId !== undefined &&
+          (interruptedTurnsRef.current.has(meta.turnId) ||
+            meta.turnId < turnIdRef.current))
+      ) {
+        return;
+      }
+
       const url = URL.createObjectURL(
         new Blob([buffer], { type: "audio/mpeg" }),
       );
-      audioQueueRef.current.push(url);
+      audioQueueRef.current.push({ url, turnId: meta?.turnId });
       playNext();
     },
     [playNext],
@@ -168,29 +250,47 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       meterCleanupRef.current = createLevelMeter(stream, {
         onLevel: setMicLevel,
         onSpeakingChange: (speaking) => {
-          setUserSpeaking(speaking && !mutedRef.current);
+          const isMuted = mutedRef.current;
+          const activeSpeaking = speaking && !isMuted;
+          userSpeakingRef.current = activeSpeaking;
+          setUserSpeaking(activeSpeaking);
+
+          if (activeSpeaking) {
+            // Start recording immediately so early consonants/vowels are captured.
+            // Notice: no "!agentSpeakingRef" check here — user can speak at any time!
+            if (!recorder.isRecording()) {
+              recorder.start();
+            }
+          }
+        },
+        onInterruption: () => {
+          // Debounce confirmed genuine user speech while agent is speaking or thinking
+          if (mutedRef.current) return;
           if (
-            speaking &&
-            !mutedRef.current &&
-            !agentSpeakingRef.current &&
-            !recorder.isRecording()
+            agentSpeakingRef.current ||
+            playingRef.current ||
+            audioQueueRef.current.length > 0
           ) {
-            recorder.start();
+            interruptAgent("user-voice-barge-in");
           }
         },
         onTurnEnd: () => {
           if (!recorder.isRecording()) return;
           void recorder.stop().then((buffer) => {
             if (buffer && socket.connected && !mutedRef.current) {
+              // Advance turn ID for the new user turn
+              turnIdRef.current += 1;
+              const currentTurn = turnIdRef.current;
+
               socket.emit(SocketEvent.AudioChunk, buffer);
-              socket.emit(SocketEvent.UserTurnEnd);
+              socket.emit(SocketEvent.UserTurnEnd, { turnId: currentTurn });
               setProcessing(true);
             }
           });
         },
       });
     },
-    [],
+    [interruptAgent],
   );
 
   const openForm = useCallback(() => {
@@ -208,12 +308,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setStatus("connecting");
       setError(null);
       setTranscript([]);
+      interruptedTurnsRef.current.clear();
+      turnIdRef.current = 1;
 
       let stream: MediaStream;
       try {
         stream = await requestMic();
       } catch {
-        setError("Microphone access is required to speak with our Bangla voice receptionist.");
+        setError(
+          "Microphone access is required to speak with our Bangla voice receptionist.",
+        );
         toast.error("Microphone access is required to start the voice call.");
         setStatus("idle");
         return;
@@ -224,29 +328,50 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       const socket = createCallSocket();
       socketRef.current = socket;
 
-      socket.on(SocketEvent.CallReady, () => {
-        setStatus("live");
-        beginStreaming(socket, stream);
-      });
-      socket.on(SocketEvent.TranscriptFinal, ({ text }) => {
-        addCaption("user", text);
-      });
-      socket.on(SocketEvent.AgentResponse, ({ text }) => {
-        addCaption("agent", text);
-      });
-      socket.on(SocketEvent.TtsAudio, (audio) => {
-        enqueueAudio(audio);
-      });
+      socket.on(
+        SocketEvent.CallReady,
+        ({ initialTurnId }: CallReadyPayload) => {
+          if (initialTurnId) turnIdRef.current = initialTurnId;
+          setStatus("live");
+          beginStreaming(socket, stream);
+        },
+      );
+
+      socket.on(
+        SocketEvent.TranscriptFinal,
+        ({ text, turnId }: TranscriptFinalPayload) => {
+          if (turnId && interruptedTurnsRef.current.has(turnId)) return;
+          addCaption("user", text);
+        },
+      );
+
+      socket.on(
+        SocketEvent.AgentResponse,
+        ({ text, turnId }: AgentResponsePayload) => {
+          if (turnId && interruptedTurnsRef.current.has(turnId)) return;
+          addCaption("agent", text);
+        },
+      );
+
+      socket.on(
+        SocketEvent.TtsAudio,
+        (audio: ArrayBuffer, meta?: TtsAudioMeta) => {
+          enqueueAudio(audio, meta);
+        },
+      );
+
       socket.on(SocketEvent.CallError, ({ message }) => {
         setProcessing(false);
         toast.error(message);
       });
+
       socket.on("connect", () => {
         socket.emit(SocketEvent.CallStart, {
           ...(patient?.name ? { patientName: patient.name } : {}),
           ...(patient?.email ? { email: patient.email } : {}),
         });
       });
+
       socket.on("connect_error", (err) => {
         console.error("[VoiceCall] Socket connect error:", err);
         setError("Couldn't connect to the voice call server. Please try again.");

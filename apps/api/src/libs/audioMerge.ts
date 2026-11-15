@@ -12,9 +12,8 @@ import type { AudioSegment } from "../sockets/session";
 if (ffmpegStatic) ffmpeg.setFfmpegPath(ffmpegStatic);
 
 // Merge the call's audio segments (caller WebM/Opus turns + agent MP3 turns) into
-// a single playable MP3. The call is half-duplex/turn-based, so the segments are
-// concatenated in chronological order; the ffmpeg concat filter decodes the mixed
-// formats and re-encodes one continuous MP3.
+// a single playable MP3. Truncates interrupted agent segments to the exact duration
+// heard before the user barged in.
 export const mergeSegmentsToMp3 = async (
   segments: AudioSegment[],
 ): Promise<Buffer> => {
@@ -37,7 +36,17 @@ export const mergeSegmentsToMp3 = async (
 
     await new Promise<void>((resolve, reject) => {
       const command = ffmpeg();
-      inputs.forEach((file) => command.input(file));
+      inputs.forEach((file, idx) => {
+        const seg = ordered[idx]!;
+        if (seg.durationMs && seg.durationMs > 0) {
+          command
+            .input(file)
+            .inputOptions([`-t ${Math.max(0.2, seg.durationMs / 1000)}`]);
+        } else {
+          command.input(file);
+        }
+      });
+
       command
         .complexFilter(
           [
