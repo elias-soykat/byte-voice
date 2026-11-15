@@ -15,14 +15,7 @@ function Sidebar() {
       <div className="p-3">
         <div className="rounded-xl border border-emerald-500/25 bg-emerald-50/60 p-4 shadow-soft">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-brand-gradient shadow-soft">
-                <HeartPulse className="size-4 text-white" />
-              </span>
-              <span className="text-sm font-bold text-emerald-950">
-                Bangla Voice AI
-              </span>
-            </div>
+            <div className="flex items-center gap-2"></div>
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />

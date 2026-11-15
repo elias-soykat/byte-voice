@@ -34,16 +34,16 @@ export function AppointmentStatusChart({ data }: { data: StatusCount[] }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row">
-      <div className="relative h-[180px] w-[180px] shrink-0">
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative h-[160px] w-[160px] shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={slices}
               dataKey="value"
               nameKey="name"
-              innerRadius={58}
-              outerRadius={84}
+              innerRadius={54}
+              outerRadius={76}
               paddingAngle={3}
               strokeWidth={0}
             >
@@ -65,26 +65,37 @@ export function AppointmentStatusChart({ data }: { data: StatusCount[] }) {
           <span className="text-2xl font-bold tracking-tight text-foreground">
             {total}
           </span>
-          <span className="text-xs text-muted-foreground">Total</span>
+          <span className="text-[11px] font-medium text-muted-foreground">Total</span>
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-2 gap-2 text-xs">
+      <div className="w-full space-y-1.5 text-xs">
         {data.map((item) => {
-          const meta = STATUS_META[item.status];
+          const meta = STATUS_META[item.status] ?? {
+            label: item.status,
+            color: "#94a3b8",
+          };
+          const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
           return (
             <div
               key={item.status}
-              className="flex items-center gap-2 rounded-lg border border-border/80 bg-background/60 px-3 py-2"
+              className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 transition-colors hover:bg-muted/50"
             >
-              <span
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: meta.color }}
-              />
-              <span className="text-muted-foreground">{meta.label}</span>
-              <span className="ml-auto font-semibold text-foreground">
-                {item.count}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: meta.color }}
+                />
+                <span className="truncate text-muted-foreground font-medium">
+                  {meta.label}
+                </span>
+              </div>
+              <div className="ml-2 flex items-center gap-1.5 font-semibold shrink-0">
+                <span className="text-foreground">{item.count}</span>
+                <span className="text-[10px] font-normal text-muted-foreground">
+                  ({percentage}%)
+                </span>
+              </div>
             </div>
           );
         })}

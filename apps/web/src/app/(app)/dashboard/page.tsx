@@ -43,7 +43,6 @@ import {
   RecentAppointmentSkeleton,
 } from "./_components/dashboard-skeleton";
 
-
 function ChartCard({
   title,
   className,
@@ -109,7 +108,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className={cn("space-y-8 transition-opacity duration-200", isFetching && !isPending && "opacity-80")}>
+        <div
+          className={cn(
+            "space-y-8 transition-opacity duration-200",
+            isFetching && !isPending && "opacity-80",
+          )}
+        >
           {/* Clinical KPI cards */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {isPending || !data ? (
@@ -150,12 +154,10 @@ export default function DashboardPage() {
                   <h2 className="text-base font-semibold text-foreground">
                     Voice Reception Analytics (Bangla AI Caller)
                   </h2>
-                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-[11px] font-medium text-emerald-800">
-                    Live Database Metrics
-                  </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Direct database calculations from real patient voice calls and LangGraph agent turns.
+                  Direct database calculations from real patient voice calls and
+                  LangGraph agent turns.
                 </p>
               </div>
               {data?.callMetrics ? (
@@ -225,7 +227,10 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 pt-2">
-              <ChartCard title="Weekly Call Volume" className="lg:col-span-2 border-border/80">
+              <ChartCard
+                title="Weekly Call Volume"
+                className="lg:col-span-2 border-border/80"
+              >
                 {isPending || !data ? (
                   <BarChartSkeleton height={230} />
                 ) : (
@@ -241,7 +246,6 @@ export default function DashboardPage() {
               </ChartCard>
             </div>
           </div>
-
 
           {/* Charts */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -259,42 +263,6 @@ export default function DashboardPage() {
                 <AppointmentStatusChart data={data.appointmentsByStatus} />
               )}
             </ChartCard>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            <ChartCard title="Appointments Trend" className="lg:col-span-2">
-              {isPending || !data ? (
-                <BarChartSkeleton height={260} />
-              ) : (
-                <AppointmentsTrendChart data={data.appointmentsTrend} />
-              )}
-            </ChartCard>
-
-            <Card className="border-border/80 shadow-soft">
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <Button asChild variant="outline" className="justify-start border-border/80 hover:bg-emerald-50/50 hover:text-emerald-950">
-                  <Link href="/doctors/new">
-                    <UserPlus className="size-4 text-emerald-600" />
-                    Add Doctor
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="justify-start border-border/80 hover:bg-emerald-50/50 hover:text-emerald-950">
-                  <Link href="/appointments">
-                    <CalendarPlus className="size-4 text-emerald-600" />
-                    Manage Appointments
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" className="justify-start border-border/80 hover:bg-emerald-50/50 hover:text-emerald-950">
-                  <Link href="/calls">
-                    <PhoneCall className="size-4 text-emerald-600" />
-                    Bangla Voice Calls
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Recent activity */}

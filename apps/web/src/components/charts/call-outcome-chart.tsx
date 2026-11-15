@@ -36,16 +36,16 @@ export function CallOutcomeChart({ data }: { data: CallOutcomeCount[] }) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row">
-      <div className="relative h-[200px] w-[200px] shrink-0">
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative h-[160px] w-[160px] shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={slices}
               dataKey="value"
               nameKey="name"
-              innerRadius={62}
-              outerRadius={90}
+              innerRadius={54}
+              outerRadius={76}
               paddingAngle={3}
               strokeWidth={0}
             >
@@ -71,11 +71,11 @@ export function CallOutcomeChart({ data }: { data: CallOutcomeCount[] }) {
           <span className="text-2xl font-bold tracking-tight text-foreground">
             {total}
           </span>
-          <span className="text-xs font-medium text-muted-foreground">Calls</span>
+          <span className="text-[11px] font-medium text-muted-foreground">Calls</span>
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-2 gap-2 text-xs">
+      <div className="w-full space-y-1.5 text-xs">
         {data.map((item) => {
           const meta = OUTCOME_META[item.outcome] ?? {
             label: item.outcome,
@@ -85,16 +85,20 @@ export function CallOutcomeChart({ data }: { data: CallOutcomeCount[] }) {
           return (
             <div
               key={item.outcome}
-              className="flex items-center gap-2 rounded-lg border border-border/80 bg-background/60 px-3 py-2"
+              className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-1.5 transition-colors hover:bg-muted/50"
             >
-              <span
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: meta.color }}
-              />
-              <span className="truncate text-muted-foreground">{meta.label}</span>
-              <div className="ml-auto flex items-center gap-1.5 font-semibold">
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: meta.color }}
+                />
+                <span className="truncate text-muted-foreground font-medium">
+                  {meta.label}
+                </span>
+              </div>
+              <div className="ml-2 flex items-center gap-1.5 font-semibold shrink-0">
                 <span className="text-foreground">{item.count}</span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] font-normal text-muted-foreground">
                   ({item.percentage}%)
                 </span>
               </div>

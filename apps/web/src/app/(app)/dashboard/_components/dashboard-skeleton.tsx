@@ -53,20 +53,26 @@ export function BarChartSkeleton({ height = 230 }: { height?: number }) {
   );
 }
 
-export function DonutChartSkeleton({ height = 200 }: { height?: number }) {
+export function DonutChartSkeleton({ rows = 4 }: { rows?: number; height?: number }) {
   return (
-    <div
-      className="flex w-full flex-col items-center justify-center gap-4 py-2"
-      style={{ height: `${height}px` }}
-    >
-      <div className="relative flex items-center justify-center">
-        <Skeleton className="size-32 rounded-full opacity-60" />
-        <div className="absolute size-20 rounded-full bg-card" />
+    <div className="flex w-full flex-col items-center gap-4 py-1">
+      <div className="relative flex size-[150px] shrink-0 items-center justify-center">
+        <Skeleton className="size-[150px] rounded-full opacity-60" />
+        <div className="absolute size-[102px] rounded-full bg-card" />
       </div>
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-2.5 w-12 rounded-full" />
-        <Skeleton className="h-2.5 w-12 rounded-full" />
-        <Skeleton className="h-2.5 w-12 rounded-full" />
+      <div className="w-full space-y-1.5 pt-1">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-1.5"
+          >
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-2.5 rounded-full" />
+              <Skeleton className="h-3.5 w-18" />
+            </div>
+            <Skeleton className="h-3.5 w-14" />
+          </div>
+        ))}
       </div>
     </div>
   );
