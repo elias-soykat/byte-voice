@@ -177,34 +177,52 @@ export default function AnalyticsPage() {
               ) : (
                 <>
                   <StatCard
+                    size="compact"
                     label="Total Calls"
                     value={data.callMetrics.totalCalls}
                     icon={PhoneCall}
+                    iconBg="bg-slate-100 ring-slate-200"
+                    iconColor="text-slate-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Bookings Made"
                     value={data.callMetrics.successfulBookings}
                     icon={CheckCircle2}
+                    iconBg="bg-emerald-50 ring-emerald-500/20"
+                    iconColor="text-emerald-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Enquiries"
                     value={data.callMetrics.enquiries}
                     icon={HelpCircle}
+                    iconBg="bg-sky-50 ring-sky-500/20"
+                    iconColor="text-sky-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Follow-ups"
                     value={data.callMetrics.followUpsNeeded}
                     icon={AlertTriangle}
+                    iconBg="bg-amber-50 ring-amber-500/20"
+                    iconColor="text-amber-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Failed Calls"
                     value={data.callMetrics.failedCalls}
                     icon={PhoneOff}
+                    iconBg="bg-rose-50 ring-rose-500/20"
+                    iconColor="text-rose-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Conversion Rate"
                     value={`${data.callMetrics.bookingConversionRate}%`}
                     icon={TrendingUp}
+                    iconBg="bg-emerald-50 ring-emerald-500/20"
+                    iconColor="text-emerald-700"
                   />
                 </>
               )}

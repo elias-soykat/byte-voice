@@ -25,8 +25,6 @@ function Logo({
         </span>
         <span className="flex items-center gap-1 text-[9px] font-semibold tracking-wider text-emerald-700/80 uppercase">
           <span>Healthcare AI</span>
-          <span className="size-1 rounded-full bg-emerald-500" />
-          <span className="text-muted-foreground font-normal">Bangladesh</span>
         </span>
       </div>
     </Link>

@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   AlertTriangle,
   CalendarDays,
-  CalendarPlus,
   CheckCircle2,
   Clock,
   HelpCircle,
@@ -24,13 +23,11 @@ import { useDashboardStats } from "@/hooks/useAnalytics";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WeeklyAppointmentsChart } from "@/components/charts/weekly-appointments-chart";
 import { AppointmentStatusChart } from "@/components/charts/appointment-status-chart";
-import { AppointmentsTrendChart } from "@/components/charts/appointments-trend-chart";
 import { CallOutcomeChart } from "@/components/charts/call-outcome-chart";
 import { WeeklyCallsChart } from "@/components/charts/weekly-calls-chart";
 import { AppointmentStatusBadge } from "../appointments/_components/appointment-status-badge";
@@ -193,34 +190,52 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <StatCard
+                    size="compact"
                     label="Total Calls"
                     value={data.callMetrics.totalCalls}
                     icon={PhoneCall}
+                    iconBg="bg-slate-100 ring-slate-200"
+                    iconColor="text-slate-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Bookings Made"
                     value={data.callMetrics.successfulBookings}
                     icon={CheckCircle2}
+                    iconBg="bg-emerald-50 ring-emerald-500/20"
+                    iconColor="text-emerald-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Enquiries"
                     value={data.callMetrics.enquiries}
                     icon={HelpCircle}
+                    iconBg="bg-sky-50 ring-sky-500/20"
+                    iconColor="text-sky-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Follow-ups"
                     value={data.callMetrics.followUpsNeeded}
                     icon={AlertTriangle}
+                    iconBg="bg-amber-50 ring-amber-500/20"
+                    iconColor="text-amber-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Failed Calls"
                     value={data.callMetrics.failedCalls}
                     icon={PhoneOff}
+                    iconBg="bg-rose-50 ring-rose-500/20"
+                    iconColor="text-rose-700"
                   />
                   <StatCard
+                    size="compact"
                     label="Conversion Rate"
                     value={`${data.callMetrics.bookingConversionRate}%`}
                     icon={TrendingUp}
+                    iconBg="bg-emerald-50 ring-emerald-500/20"
+                    iconColor="text-emerald-700"
                   />
                 </>
               )}
