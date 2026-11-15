@@ -100,7 +100,7 @@ function Hero() {
         </div>
 
         {/* Right Column: 3D Interactive Hero Visualization */}
-        <div className="lg:pl-4 hidden sm:block">
+        <div className="lg:pl-4">
           <Hero3D />
         </div>
       </div>
