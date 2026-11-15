@@ -44,3 +44,42 @@ export const findAppointmentTimesSince = (since: Date) =>
 
 export const findAllAppointmentTimes = () =>
   prisma.appointment.findMany({ select: { startTime: true, endTime: true } });
+
+// --- Call analytics queries ---
+
+export const countTotalCalls = () => prisma.call.count();
+
+export const countCallsBetween = (start: Date, end: Date) =>
+  prisma.call.count({
+    where: { startedAt: { gte: start, lt: end } },
+  });
+
+export const groupCallsByOutcome = () =>
+  prisma.call.groupBy({
+    by: ["outcome"],
+    _count: true,
+  });
+
+export const countFailedCalls = () =>
+  prisma.call.count({
+    where: {
+      OR: [
+        { status: "FAILED" },
+        { outcome: "FAILED" },
+      ],
+    },
+  });
+
+export const aggregateCallDurations = () =>
+  prisma.call.aggregate({
+    _avg: { durationSec: true },
+    _sum: { durationSec: true },
+  });
+
+export const findCallTimesSince = (since: Date) =>
+  prisma.call.findMany({
+    where: { startedAt: { gte: since } },
+    select: { startedAt: true, outcome: true, durationSec: true },
+    orderBy: { startedAt: "asc" },
+  });
+

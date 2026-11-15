@@ -1,9 +1,15 @@
 "use client";
 
 import {
+  AlertTriangle,
   CalendarCheck,
+  CheckCircle2,
   Clock,
+  HelpCircle,
+  PhoneCall,
+  PhoneOff,
   Stethoscope,
+  TrendingUp,
   TriangleAlert,
   Users,
 } from "lucide-react";
@@ -18,6 +24,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WeeklyAppointmentsChart } from "@/components/charts/weekly-appointments-chart";
 import { AppointmentStatusChart } from "@/components/charts/appointment-status-chart";
 import { AppointmentsTrendChart } from "@/components/charts/appointments-trend-chart";
+import { CallOutcomeChart } from "@/components/charts/call-outcome-chart";
+import { WeeklyCallsChart } from "@/components/charts/weekly-calls-chart";
+
 
 function ChartCard({
   title,
@@ -121,6 +130,7 @@ export default function AnalyticsPage() {
             </ChartCard>
           </div>
 
+          {/* Clinical Weekly Appointments Chart */}
           <ChartCard title="Weekly Appointments">
             {isPending || !data ? (
               <Skeleton className="h-[260px] w-full" />
@@ -128,6 +138,97 @@ export default function AnalyticsPage() {
               <WeeklyAppointmentsChart data={data.weeklyAppointments} />
             )}
           </ChartCard>
+
+          {/* Voice Reception & Call Intelligence Section */}
+          <div className="space-y-6 pt-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold tracking-tight text-foreground">
+                    Voice Reception Intelligence
+                  </h2>
+                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-xs font-medium text-emerald-800">
+                    ByteVoice Live Data
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Database aggregations of inbound Bangla voice calls, outcome classification, and booking conversions.
+                </p>
+              </div>
+              {data?.callMetrics && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>
+                    Average Duration:{" "}
+                    <strong className="text-foreground">
+                      {Math.floor(data.callMetrics.averageDurationSec / 60)}m{" "}
+                      {data.callMetrics.averageDurationSec % 60}s ({data.callMetrics.averageDurationSec}s)
+                    </strong>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Voice KPI Cards */}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
+              {isPending || !data ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-xl" />
+                ))
+              ) : (
+                <>
+                  <StatCard
+                    label="Total Calls"
+                    value={data.callMetrics.totalCalls}
+                    icon={PhoneCall}
+                  />
+                  <StatCard
+                    label="Bookings Made"
+                    value={data.callMetrics.successfulBookings}
+                    icon={CheckCircle2}
+                  />
+                  <StatCard
+                    label="Enquiries"
+                    value={data.callMetrics.enquiries}
+                    icon={HelpCircle}
+                  />
+                  <StatCard
+                    label="Follow-ups"
+                    value={data.callMetrics.followUpsNeeded}
+                    icon={AlertTriangle}
+                  />
+                  <StatCard
+                    label="Failed Calls"
+                    value={data.callMetrics.failedCalls}
+                    icon={PhoneOff}
+                  />
+                  <StatCard
+                    label="Conversion Rate"
+                    value={`${data.callMetrics.bookingConversionRate}%`}
+                    icon={TrendingUp}
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Voice Charts */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+              <ChartCard title="Weekly Call Volume (7 Days)" className="lg:col-span-2">
+                {isPending || !data ? (
+                  <Skeleton className="h-[230px] w-full" />
+                ) : (
+                  <WeeklyCallsChart data={data.callMetrics.weeklyCalls} />
+                )}
+              </ChartCard>
+              <ChartCard title="Call Outcomes Distribution">
+                {isPending || !data ? (
+                  <Skeleton className="h-[200px] w-full" />
+                ) : (
+                  <CallOutcomeChart data={data.callMetrics.callsByOutcome} />
+                )}
+              </ChartCard>
+            </div>
+          </div>
+
         </>
       )}
     </div>

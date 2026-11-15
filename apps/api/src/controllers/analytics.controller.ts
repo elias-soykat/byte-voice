@@ -1,6 +1,12 @@
 import { Request, Response } from "express";
 import * as analyticsData from "../data/analytics.data";
-import { bucketByDay, bucketByMonth, averageMinutes } from "../helpers/analytics";
+import {
+  bucketByDay,
+  bucketByMonth,
+  averageMinutes,
+  calculateCallMetrics,
+  bucketCallsByDay,
+} from "../helpers/analytics";
 import { sendSuccess, sendError } from "../helpers/apiResponse";
 
 type StatusGroup = { status: string; _count: number };
@@ -36,6 +42,11 @@ export const getDashboardStats = async (_req: Request, res: Response) => {
       latestDoctors,
       weekRows,
       monthRows,
+      totalCalls,
+      callOutcomeGroups,
+      failedCalls,
+      callDurationAgg,
+      callWeekRows,
     ] = await Promise.all([
       analyticsData.countTotalDoctors(),
       analyticsData.countDistinctPatients(),
@@ -46,7 +57,22 @@ export const getDashboardStats = async (_req: Request, res: Response) => {
       analyticsData.findLatestDoctors(5),
       analyticsData.findAppointmentTimesSince(weekAgo),
       analyticsData.findAppointmentTimesSince(sixMonthsAgo),
+      // Real database-driven call analytics queries
+      analyticsData.countTotalCalls(),
+      analyticsData.groupCallsByOutcome(),
+      analyticsData.countFailedCalls(),
+      analyticsData.aggregateCallDurations(),
+      analyticsData.findCallTimesSince(weekAgo),
     ]);
+
+    const weeklyCalls = bucketCallsByDay(callWeekRows, 7);
+    const callMetrics = calculateCallMetrics(
+      totalCalls,
+      callOutcomeGroups,
+      failedCalls,
+      callDurationAgg._avg.durationSec,
+      weeklyCalls,
+    );
 
     return sendSuccess(res, 200, "Dashboard stats fetched successfully", {
       totalDoctors,
@@ -58,6 +84,7 @@ export const getDashboardStats = async (_req: Request, res: Response) => {
       appointmentsByStatus: toStatusCounts(statusGroups),
       recentAppointments,
       latestDoctors,
+      callMetrics,
     });
   } catch (error) {
     return sendError(res, error);
@@ -82,6 +109,11 @@ export const getAnalytics = async (_req: Request, res: Response) => {
       allTimes,
       weekRows,
       monthRows,
+      totalCalls,
+      callOutcomeGroups,
+      failedCalls,
+      callDurationAgg,
+      callWeekRows,
     ] = await Promise.all([
       analyticsData.countTotalAppointments(),
       analyticsData.countActiveDoctors(),
@@ -91,7 +123,22 @@ export const getAnalytics = async (_req: Request, res: Response) => {
       analyticsData.findAllAppointmentTimes(),
       analyticsData.findAppointmentTimesSince(weekAgo),
       analyticsData.findAppointmentTimesSince(sixMonthsAgo),
+      // Real database-driven call analytics queries
+      analyticsData.countTotalCalls(),
+      analyticsData.groupCallsByOutcome(),
+      analyticsData.countFailedCalls(),
+      analyticsData.aggregateCallDurations(),
+      analyticsData.findCallTimesSince(weekAgo),
     ]);
+
+    const weeklyCalls = bucketCallsByDay(callWeekRows, 7);
+    const callMetrics = calculateCallMetrics(
+      totalCalls,
+      callOutcomeGroups,
+      failedCalls,
+      callDurationAgg._avg.durationSec,
+      weeklyCalls,
+    );
 
     return sendSuccess(res, 200, "Analytics fetched successfully", {
       totalAppointments,
@@ -102,8 +149,10 @@ export const getAnalytics = async (_req: Request, res: Response) => {
       appointmentsByStatus: toStatusCounts(statusGroups),
       appointmentsTrend: bucketByMonth(monthRows, 6),
       weeklyAppointments: bucketByDay(weekRows, 7),
+      callMetrics,
     });
   } catch (error) {
     return sendError(res, error);
   }
 };
+

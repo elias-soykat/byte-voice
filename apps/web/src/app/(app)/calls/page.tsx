@@ -18,7 +18,9 @@ import {
 } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useCallsList } from "@/hooks/useCalls";
+import { useDashboardStats } from "@/hooks/useAnalytics";
 import type { CallSummary, CallOutcome } from "@/types/call";
+
 import { CallsTable } from "./_components/calls-table";
 import { CallDetailDialog } from "./_components/call-detail-dialog";
 import { cn } from "@/lib/utils";
@@ -45,6 +47,9 @@ export default function CallsPage() {
     setPage(1);
   }, [debouncedSearch, outcomeFilter]);
 
+  const { data: statsData } = useDashboardStats();
+  const callMetrics = statsData?.callMetrics;
+
   const { data, isPending, isError, refetch } = useCallsList({
     page,
     limit: PAGE_SIZE,
@@ -64,7 +69,50 @@ export default function CallsPage() {
         description="Structured call data, clinical extractions, transcripts, and audio playback."
       />
 
+      {/* Real-time Call Database Metrics Strip */}
+      {callMetrics && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+            <span className="text-xs text-muted-foreground">Total Calls</span>
+            <span className="mt-1 text-xl font-bold text-foreground">
+              {callMetrics.totalCalls}
+            </span>
+          </div>
+          <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+            <span className="text-xs text-muted-foreground">Bookings</span>
+            <span className="mt-1 text-xl font-bold text-emerald-600">
+              {callMetrics.successfulBookings}
+            </span>
+          </div>
+          <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+            <span className="text-xs text-muted-foreground">Enquiries</span>
+            <span className="mt-1 text-xl font-bold text-sky-600">
+              {callMetrics.enquiries}
+            </span>
+          </div>
+          <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+            <span className="text-xs text-muted-foreground">Follow-ups</span>
+            <span className="mt-1 text-xl font-bold text-amber-600">
+              {callMetrics.followUpsNeeded}
+            </span>
+          </div>
+          <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+            <span className="text-xs text-muted-foreground">Failed</span>
+            <span className="mt-1 text-xl font-bold text-rose-600">
+              {callMetrics.failedCalls}
+            </span>
+          </div>
+          <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+            <span className="text-xs text-muted-foreground">Conversion</span>
+            <span className="mt-1 text-xl font-bold text-emerald-700">
+              {callMetrics.bookingConversionRate}%
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <SearchInput
           value={search}
           onValueChange={setSearch}

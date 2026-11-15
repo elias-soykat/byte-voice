@@ -75,3 +75,110 @@ export function averageMinutes(rows: TimeRow[]): number {
   );
   return Math.round(total / rows.length / 60000);
 }
+
+// --- Call analytics types & helpers ---
+
+export type CallOutcomeStat = {
+  outcome: string;
+  count: number;
+  percentage: number;
+};
+
+export type CallMetrics = {
+  totalCalls: number;
+  successfulBookings: number;
+  enquiries: number;
+  followUpsNeeded: number;
+  failedCalls: number;
+  incompleteCalls: number;
+  bookingConversionRate: number; // percentage, e.g. 19.4
+  averageDurationSec: number;
+  callsByOutcome: CallOutcomeStat[];
+  weeklyCalls: { day: string; calls: number }[];
+};
+
+const ALL_CALL_OUTCOMES = [
+  "BOOKED",
+  "ENQUIRY",
+  "FOLLOW_UP_NEEDED",
+  "INCOMPLETE",
+  "FAILED",
+] as const;
+
+/**
+ * Calculates domain call metrics with zero-division safety and double-counting protection.
+ */
+export function calculateCallMetrics(
+  totalCalls: number,
+  outcomeGroups: { outcome: string; _count: number }[],
+  failedCount: number,
+  avgDurationSec: number | null,
+  weeklyCalls: { day: string; calls: number }[] = []
+): CallMetrics {
+  const counts: Record<string, number> = {
+    BOOKED: 0,
+    ENQUIRY: 0,
+    FOLLOW_UP_NEEDED: 0,
+    INCOMPLETE: 0,
+    FAILED: 0,
+  };
+
+  for (const group of outcomeGroups) {
+    counts[group.outcome] = group._count;
+  }
+
+  // Prevent double-counting: take the max between explicit FAILED outcome and FAILED status
+  const finalFailed = Math.max(counts["FAILED"] ?? 0, failedCount);
+  counts["FAILED"] = finalFailed;
+
+  const successfulBookings = counts["BOOKED"] ?? 0;
+  const bookingConversionRate =
+    totalCalls > 0
+      ? Math.round((successfulBookings / totalCalls) * 1000) / 10
+      : 0;
+
+  const callsByOutcome: CallOutcomeStat[] = ALL_CALL_OUTCOMES.map((outcome) => {
+    const count = counts[outcome] ?? 0;
+    const percentage =
+      totalCalls > 0 ? Math.round((count / totalCalls) * 1000) / 10 : 0;
+    return { outcome, count, percentage };
+  });
+
+  return {
+    totalCalls,
+    successfulBookings,
+    enquiries: counts["ENQUIRY"] ?? 0,
+    followUpsNeeded: counts["FOLLOW_UP_NEEDED"] ?? 0,
+    failedCalls: finalFailed,
+    incompleteCalls: counts["INCOMPLETE"] ?? 0,
+    bookingConversionRate,
+    averageDurationSec: Math.round(avgDurationSec ?? 0),
+    callsByOutcome,
+    weeklyCalls,
+  };
+}
+
+/** Calls per day across the last `days` calendar days (oldest → newest). */
+export function bucketCallsByDay(
+  rows: { startedAt: Date }[],
+  days = 7,
+): { day: string; calls: number }[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const buckets = Array.from({ length: days }, (_, i) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (days - 1 - i));
+    return { key: date.toDateString(), day: WEEKDAYS[date.getDay()]!, calls: 0 };
+  });
+  const index = new Map(buckets.map((b, i) => [b.key, i]));
+
+  for (const row of rows) {
+    const key = new Date(row.startedAt).toDateString();
+    const i = index.get(key);
+    if (i !== undefined) buckets[i]!.calls += 1;
+  }
+
+  return buckets.map(({ day, calls }) => ({ day, calls }));
+}
+

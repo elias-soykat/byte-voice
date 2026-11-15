@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import {
+  AlertTriangle,
   CalendarDays,
   CalendarPlus,
+  CheckCircle2,
   Clock,
+  HelpCircle,
   PhoneCall,
+  PhoneOff,
   Stethoscope,
+  TrendingUp,
   TriangleAlert,
   UserPlus,
   Users,
@@ -18,13 +23,17 @@ import { useDashboardStats } from "@/hooks/useAnalytics";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WeeklyAppointmentsChart } from "@/components/charts/weekly-appointments-chart";
 import { AppointmentStatusChart } from "@/components/charts/appointment-status-chart";
 import { AppointmentsTrendChart } from "@/components/charts/appointments-trend-chart";
+import { CallOutcomeChart } from "@/components/charts/call-outcome-chart";
+import { WeeklyCallsChart } from "@/components/charts/weekly-calls-chart";
 import { AppointmentStatusBadge } from "../appointments/_components/appointment-status-badge";
+
 
 function ChartCard({
   title,
@@ -84,7 +93,7 @@ export default function DashboardPage() {
         </Card>
       ) : (
         <>
-          {/* KPI cards */}
+          {/* Clinical KPI cards */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {isPending || !data ? (
               Array.from({ length: 4 }).map((_, i) => (
@@ -115,6 +124,102 @@ export default function DashboardPage() {
               </>
             )}
           </div>
+
+          {/* Voice Reception Analytics Section */}
+          <div className="space-y-4 rounded-2xl border border-emerald-500/20 bg-linear-to-b from-emerald-50/20 to-transparent p-5">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-foreground">
+                    Voice Reception Analytics (Bangla AI Caller)
+                  </h2>
+                  <Badge variant="outline" className="border-emerald-500/30 bg-emerald-50 text-[11px] font-medium text-emerald-800">
+                    Live Database Metrics
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Direct database calculations from real patient voice calls and LangGraph agent turns.
+                </p>
+              </div>
+              {data?.callMetrics && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>
+                    Avg Duration:{" "}
+                    <strong className="text-foreground">
+                      {Math.floor(data.callMetrics.averageDurationSec / 60)}m{" "}
+                      {data.callMetrics.averageDurationSec % 60}s
+                    </strong>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    Conversion:{" "}
+                    <strong className="text-emerald-700">
+                      {data.callMetrics.bookingConversionRate}%
+                    </strong>
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 xl:grid-cols-6">
+              {isPending || !data ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-xl" />
+                ))
+              ) : (
+                <>
+                  <StatCard
+                    label="Total Calls"
+                    value={data.callMetrics.totalCalls}
+                    icon={PhoneCall}
+                  />
+                  <StatCard
+                    label="Bookings Made"
+                    value={data.callMetrics.successfulBookings}
+                    icon={CheckCircle2}
+                  />
+                  <StatCard
+                    label="Enquiries"
+                    value={data.callMetrics.enquiries}
+                    icon={HelpCircle}
+                  />
+                  <StatCard
+                    label="Follow-ups"
+                    value={data.callMetrics.followUpsNeeded}
+                    icon={AlertTriangle}
+                  />
+                  <StatCard
+                    label="Failed Calls"
+                    value={data.callMetrics.failedCalls}
+                    icon={PhoneOff}
+                  />
+                  <StatCard
+                    label="Conversion Rate"
+                    value={`${data.callMetrics.bookingConversionRate}%`}
+                    icon={TrendingUp}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 pt-2">
+              <ChartCard title="Weekly Call Volume" className="lg:col-span-2 border-border/80">
+                {isPending || !data ? (
+                  <Skeleton className="h-[230px] w-full" />
+                ) : (
+                  <WeeklyCallsChart data={data.callMetrics.weeklyCalls} />
+                )}
+              </ChartCard>
+              <ChartCard title="Call Outcomes" className="border-border/80">
+                {isPending || !data ? (
+                  <Skeleton className="h-[200px] w-full" />
+                ) : (
+                  <CallOutcomeChart data={data.callMetrics.callsByOutcome} />
+                )}
+              </ChartCard>
+            </div>
+          </div>
+
 
           {/* Charts */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
