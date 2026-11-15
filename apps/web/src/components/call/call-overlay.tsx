@@ -156,24 +156,8 @@ export function CallOverlay() {
           {/* Middle Stage: Compact Voice Orb, Status & Transcript       */}
           {/* ========================================================= */}
           <main className="my-auto flex w-full flex-col items-center gap-4 py-2 text-center">
-            {/* Status Pill */}
-            <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-300">
-                {status === "finalizing" ? (
-                  <Loader2 className="size-3.5 text-teal-300 animate-spin" />
-                ) : agentSpeaking ? (
-                  <Volume2 className="size-3.5 text-teal-300 animate-pulse" />
-                ) : userSpeaking ? (
-                  <Mic className="size-3.5 text-teal-300 animate-pulse" />
-                ) : (
-                  <span className="size-1.5 rounded-full bg-teal-400 animate-pulse" />
-                )}
-                <span>{getStatusText()}</span>
-              </span>
-            </div>
-
             {status === "finalizing" ? (
-              <div className="flex flex-col items-center gap-3 py-3">
+              <div className="flex flex-col items-center gap-3 py-2">
                 <div className="relative flex size-14 items-center justify-center">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400/20 opacity-75" />
                   <span className="flex size-12 items-center justify-center rounded-full border border-teal-500/40 bg-teal-500/10 text-teal-300 shadow-lg shadow-teal-500/20">
@@ -192,7 +176,24 @@ export function CallOverlay() {
                 </div>
               </div>
             ) : (
-              <CallOrb mode={mode} level={micLevel} size={84} />
+              <>
+                {/* Status Pill */}
+                <div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-300">
+                    {agentSpeaking ? (
+                      <Volume2 className="size-3.5 text-teal-300 animate-pulse" />
+                    ) : userSpeaking ? (
+                      <Mic className="size-3.5 text-teal-300 animate-pulse" />
+                    ) : (
+                      <span className="size-1.5 rounded-full bg-teal-400 animate-pulse" />
+                    )}
+                    <span>{getStatusText()}</span>
+                  </span>
+                </div>
+
+                {/* Compact Voice Orb */}
+                <CallOrb mode={mode} level={micLevel} size={84} />
+              </>
             )}
 
             {/* Live Transcript Frosted Glass Card */}
@@ -254,14 +255,7 @@ export function CallOverlay() {
           {/* Bottom Action Dock: Controls & Security                    */}
           {/* ========================================================= */}
           <footer className="mx-auto flex flex-col items-center gap-2 pb-1">
-            {status === "finalizing" ? (
-              <div className="flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-xs font-medium text-teal-300 shadow-md">
-                <Loader2 className="size-3.5 animate-spin text-teal-400" />
-                <span>
-                  {lang === "bn" ? "সারাংশ প্রস্তুত হচ্ছে…" : "Preparing summary…"}
-                </span>
-              </div>
-            ) : (
+            {status !== "finalizing" && (
               <div className="flex items-center gap-4 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 backdrop-blur-xl shadow-xl">
                 <button
                   type="button"
