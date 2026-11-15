@@ -2,15 +2,18 @@
   "name": "byte-care-ai",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "build": "pnpm --filter=@repo/shared build && pnpm --filter=api build && pnpm --filter=web build",
+    "build:web": "pnpm --filter=@repo/shared build && pnpm --filter=web build",
+    "build:api": "pnpm --filter=@repo/shared build && pnpm --filter=api build",
+    "dev": "pnpm --parallel --filter=web --filter=api dev",
+    "dev:web": "pnpm --filter=web dev",
+    "dev:api": "pnpm --filter=api dev",
+    "lint": "pnpm -r lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "check-types": "pnpm -r check-types"
   },
   "devDependencies": {
     "prettier": "^3.7.4",
-    "turbo": "^2.10.0",
     "typescript": "5.9.2"
   },
   "packageManager": "pnpm@9.0.0",
