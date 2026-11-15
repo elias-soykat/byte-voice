@@ -14,7 +14,7 @@ export const translations = {
       talkToCaller: "Talk to Bangla Caller",
     },
     hero: {
-      badge: "StrategyByte ByteVoice • Bangladesh Launch",
+      badge: "StrategyByte ByteVoice",
       titleStart: "AI Voice Receptionist for",
       titleGradient: "Bangladeshi Healthcare",
       titleEnd: "",

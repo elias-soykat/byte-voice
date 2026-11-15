@@ -84,27 +84,52 @@ export function Hero3D() {
     // Connective edges defining the 3D tooth structure
     const toothEdges: [number, number][] = [
       // Crown top
-      [0, 1], [1, 2], [2, 3], [3, 0],
-      [0, 4], [1, 4], [2, 4], [3, 4],
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 0],
+      [0, 4],
+      [1, 4],
+      [2, 4],
+      [3, 4],
 
       // Top to upper contour
-      [0, 5], [1, 6], [2, 7], [3, 8],
-      [5, 6], [6, 7], [7, 8], [8, 5],
+      [0, 5],
+      [1, 6],
+      [2, 7],
+      [3, 8],
+      [5, 6],
+      [6, 7],
+      [7, 8],
+      [8, 5],
 
       // Upper contour to waist
-      [5, 9], [6, 10], [7, 11], [8, 12],
-      [9, 10], [10, 11], [11, 12], [12, 9],
+      [5, 9],
+      [6, 10],
+      [7, 11],
+      [8, 12],
+      [9, 10],
+      [10, 11],
+      [11, 12],
+      [12, 9],
 
       // Waist to bifurcation
-      [9, 13], [10, 14], [11, 14], [12, 13],
+      [9, 13],
+      [10, 14],
+      [11, 14],
+      [12, 13],
       [13, 14],
 
       // Root 1
-      [13, 15], [15, 16], [16, 17],
+      [13, 15],
+      [15, 16],
+      [16, 17],
       [9, 15],
 
       // Root 2
-      [14, 18], [18, 19], [19, 20],
+      [14, 18],
+      [18, 19],
+      [19, 20],
       [11, 18],
     ];
 
@@ -161,7 +186,8 @@ export function Hero3D() {
       // 1. Draw glowing orbital soundwave rings around the 3D model
       for (let r = 0; r < 2; r++) {
         const ringRadius = 115 + r * 30;
-        const ringTilt = (r === 0 ? 0.35 : -0.4) + Math.sin(baseAngle * 0.8) * 0.1;
+        const ringTilt =
+          (r === 0 ? 0.35 : -0.4) + Math.sin(baseAngle * 0.8) * 0.1;
         const ringPoints = 36;
         ctx.beginPath();
         for (let i = 0; i <= ringPoints; i++) {
@@ -174,7 +200,8 @@ export function Hero3D() {
           if (i === 0) ctx.moveTo(p.px, p.py);
           else ctx.lineTo(p.px, p.py);
         }
-        ctx.strokeStyle = r === 0 ? "rgba(5, 150, 105, 0.45)" : "rgba(16, 185, 129, 0.35)";
+        ctx.strokeStyle =
+          r === 0 ? "rgba(5, 150, 105, 0.45)" : "rgba(16, 185, 129, 0.35)";
         ctx.lineWidth = r === 0 ? 1.8 : 1.2;
         ctx.stroke();
       }
@@ -256,15 +283,6 @@ export function Hero3D() {
       />
 
       {/* Floating Status Pills */}
-      <div className="pointer-events-none absolute top-4 left-4 flex items-center gap-2 rounded-full border border-emerald-500/20 bg-surface/90 px-3 py-1 shadow-soft backdrop-blur">
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-        </span>
-        <span className="text-[11px] font-medium text-foreground">
-          3D Clinical Model • Interactive
-        </span>
-      </div>
 
       <div className="pointer-events-none absolute right-4 bottom-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-surface/95 px-3 py-1.5 shadow-soft backdrop-blur">
         <Radio className="size-3.5 text-primary animate-pulse" />
