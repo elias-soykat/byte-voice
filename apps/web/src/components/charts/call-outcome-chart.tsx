@@ -15,8 +15,9 @@ const OUTCOME_META: Record<
   FAILED: { label: "Failed", color: "#ef4444", bg: "bg-rose-50 text-rose-700 border-rose-200" },
 };
 
-export function CallOutcomeChart({ data }: { data: CallOutcomeCount[] }) {
-  const slices = data
+export function CallOutcomeChart({ data = [] }: { data?: CallOutcomeCount[] }) {
+  const safeData = data ?? [];
+  const slices = safeData
     .filter((d) => d.count > 0)
     .map((d) => ({
       name: OUTCOME_META[d.outcome]?.label ?? d.outcome,
