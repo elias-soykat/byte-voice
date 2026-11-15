@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-import { Prisma } from "../generated/prisma/client";
+import { CallOutcome, Prisma } from "../generated/prisma/client";
 import * as callsData from "../data/calls.data";
 import { AppError } from "../errors/AppError";
 import { sendSuccess, sendError } from "../helpers/apiResponse";
@@ -15,16 +15,27 @@ export const getCalls = async (req: Request, res: Response) => {
   try {
     const { page, limit, search, outcome } = listCallsQuerySchema.parse(req.query);
 
-    const where: Prisma.CallWhereInput = {};
-    if (outcome) {
-      where.outcome = outcome;
+    const conditions: Prisma.CallWhereInput[] = [];
+
+    // Filter by outcome; for FAILED, capture both clinical outcome failures and technical status breakdowns
+    if (outcome === CallOutcome.FAILED) {
+      conditions.push({
+        OR: [{ outcome: CallOutcome.FAILED }, { status: "FAILED" }],
+      });
+    } else if (outcome) {
+      conditions.push({ outcome });
     }
+
     if (search) {
-      where.OR = [
-        { patientName: { contains: search, mode: "insensitive" } },
-        { patientPhone: { contains: search, mode: "insensitive" } },
-      ];
+      conditions.push({
+        OR: [
+          { patientName: { contains: search, mode: "insensitive" } },
+          { patientPhone: { contains: search, mode: "insensitive" } },
+        ],
+      });
     }
+
+    const where: Prisma.CallWhereInput = conditions.length > 0 ? { AND: conditions } : {};
 
     const [items, total] = await Promise.all([
       callsData.findCalls({ skip: (page - 1) * limit, take: limit, where }),

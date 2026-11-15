@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PhoneCall, TriangleAlert, CheckCircle2, HelpCircle, AlertTriangle, PhoneOff } from "lucide-react";
+import {
+  PhoneCall,
+  TriangleAlert,
+  CheckCircle2,
+  HelpCircle,
+  AlertTriangle,
+  PhoneOff,
+  XCircle,
+} from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -33,6 +41,7 @@ const OUTCOME_FILTERS: { label: string; value?: CallOutcome; icon?: React.Compon
   { label: "Enquiries", value: "ENQUIRY", icon: HelpCircle },
   { label: "Follow-up Needed", value: "FOLLOW_UP_NEEDED", icon: AlertTriangle },
   { label: "Incomplete", value: "INCOMPLETE", icon: PhoneOff },
+  { label: "Failed", value: "FAILED", icon: XCircle },
 ];
 
 export default function CallsPage() {
@@ -125,6 +134,7 @@ export default function CallsPage() {
           {OUTCOME_FILTERS.map((f) => {
             const active = outcomeFilter === f.value;
             const Icon = f.icon;
+            const isFailed = f.value === "FAILED";
             return (
               <button
                 key={f.label}
@@ -133,8 +143,12 @@ export default function CallsPage() {
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all",
                   active
-                    ? "bg-primary text-primary-foreground shadow-soft"
-                    : "border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    ? isFailed
+                      ? "bg-destructive text-destructive-foreground shadow-soft"
+                      : "bg-primary text-primary-foreground shadow-soft"
+                    : isFailed
+                      ? "border border-border bg-card text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/20"
+                      : "border border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
                 )}
               >
                 {Icon && <Icon className="size-3.5" />}
@@ -172,12 +186,24 @@ export default function CallsPage() {
         </Card>
       ) : items.length === 0 ? (
         <EmptyState
-          icon={PhoneCall}
-          title={hasFilters ? "No matching calls found" : "No calls yet"}
+          icon={outcomeFilter === "FAILED" && !debouncedSearch ? CheckCircle2 : PhoneCall}
+          title={
+            outcomeFilter === "FAILED"
+              ? debouncedSearch
+                ? "No matching failed calls found"
+                : "No failed calls recorded"
+              : hasFilters
+                ? "No matching calls found"
+                : "No calls yet"
+          }
           description={
-            hasFilters
-              ? "Try adjusting your search terms or filter selection."
-              : "Live Bangla voice calls will appear here automatically with their audio, transcript, and clinical extractions."
+            outcomeFilter === "FAILED"
+              ? debouncedSearch
+                ? "No failed call records match your search criteria."
+                : "All voice sessions and clinical extractions completed without system failures."
+              : hasFilters
+                ? "Try adjusting your search terms or filter selection."
+                : "Live Bangla voice calls will appear here automatically with their audio, transcript, and clinical extractions."
           }
           action={
             hasFilters ? (
