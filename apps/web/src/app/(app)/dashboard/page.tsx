@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   HelpCircle,
+  Loader2,
   PhoneCall,
   PhoneOff,
   Stethoscope,
@@ -17,7 +18,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { getInitials } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { formatTime } from "@/lib/datetime";
 import { useDashboardStats } from "@/hooks/useAnalytics";
 import { PageHeader } from "@/components/page-header";
@@ -33,6 +34,14 @@ import { AppointmentsTrendChart } from "@/components/charts/appointments-trend-c
 import { CallOutcomeChart } from "@/components/charts/call-outcome-chart";
 import { WeeklyCallsChart } from "@/components/charts/weekly-calls-chart";
 import { AppointmentStatusBadge } from "../appointments/_components/appointment-status-badge";
+import {
+  StatCardSkeleton,
+  CompactStatCardSkeleton,
+  BarChartSkeleton,
+  DonutChartSkeleton,
+  RecentDoctorSkeleton,
+  RecentAppointmentSkeleton,
+} from "./_components/dashboard-skeleton";
 
 
 function ChartCard({
@@ -55,7 +64,7 @@ function ChartCard({
 }
 
 export default function DashboardPage() {
-  const { data, isPending, isError, refetch } = useDashboardStats();
+  const { data, isPending, isFetching, isError, refetch } = useDashboardStats();
 
   return (
     <div className="space-y-8">
@@ -63,12 +72,20 @@ export default function DashboardPage() {
         title="Clinical Dashboard"
         description="Dhaka Dental Care — patient flow, doctor schedules, and voice reception stats."
         actions={
-          <Button asChild variant="gradient">
-            <Link href="/doctors/new">
-              <UserPlus className="size-4" />
-              Add Doctor
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            {isFetching && !isPending && (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
+                <Loader2 className="size-3.5 animate-spin text-primary" />
+                <span className="hidden sm:inline">Syncing…</span>
+              </span>
+            )}
+            <Button asChild variant="gradient">
+              <Link href="/doctors/new">
+                <UserPlus className="size-4" />
+                Add Doctor
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -92,12 +109,12 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <>
+        <div className={cn("space-y-8 transition-opacity duration-200", isFetching && !isPending && "opacity-80")}>
           {/* Clinical KPI cards */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {isPending || !data ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 rounded-xl" />
+                <StatCardSkeleton key={i} />
               ))
             ) : (
               <>
@@ -141,7 +158,7 @@ export default function DashboardPage() {
                   Direct database calculations from real patient voice calls and LangGraph agent turns.
                 </p>
               </div>
-              {data?.callMetrics && (
+              {data?.callMetrics ? (
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>
                     Avg Duration:{" "}
@@ -158,13 +175,18 @@ export default function DashboardPage() {
                     </strong>
                   </span>
                 </div>
-              )}
+              ) : isPending ? (
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 xl:grid-cols-6">
               {isPending || !data ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-28 rounded-xl" />
+                  <CompactStatCardSkeleton key={i} />
                 ))
               ) : (
                 <>
@@ -205,14 +227,14 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 pt-2">
               <ChartCard title="Weekly Call Volume" className="lg:col-span-2 border-border/80">
                 {isPending || !data ? (
-                  <Skeleton className="h-[230px] w-full" />
+                  <BarChartSkeleton height={230} />
                 ) : (
                   <WeeklyCallsChart data={data.callMetrics.weeklyCalls} />
                 )}
               </ChartCard>
               <ChartCard title="Call Outcomes" className="border-border/80">
                 {isPending || !data ? (
-                  <Skeleton className="h-[200px] w-full" />
+                  <DonutChartSkeleton height={200} />
                 ) : (
                   <CallOutcomeChart data={data.callMetrics.callsByOutcome} />
                 )}
@@ -225,14 +247,14 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <ChartCard title="Weekly Appointments" className="lg:col-span-2">
               {isPending || !data ? (
-                <Skeleton className="h-[260px] w-full" />
+                <BarChartSkeleton height={260} />
               ) : (
                 <WeeklyAppointmentsChart data={data.weeklyAppointments} />
               )}
             </ChartCard>
             <ChartCard title="Appointment Status">
               {isPending || !data ? (
-                <Skeleton className="h-[180px] w-full" />
+                <DonutChartSkeleton height={180} />
               ) : (
                 <AppointmentStatusChart data={data.appointmentsByStatus} />
               )}
@@ -242,7 +264,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <ChartCard title="Appointments Trend" className="lg:col-span-2">
               {isPending || !data ? (
-                <Skeleton className="h-[260px] w-full" />
+                <BarChartSkeleton height={260} />
               ) : (
                 <AppointmentsTrendChart data={data.appointmentsTrend} />
               )}
@@ -287,13 +309,7 @@ export default function DashboardPage() {
               <CardContent className="flex flex-col gap-1">
                 {isPending || !data ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 px-2 py-2.5">
-                      <Skeleton className="size-9 rounded-full" />
-                      <div className="space-y-1.5">
-                        <Skeleton className="h-3.5 w-32" />
-                        <Skeleton className="h-3 w-20" />
-                      </div>
-                    </div>
+                    <RecentDoctorSkeleton key={i} />
                   ))
                 ) : data.latestDoctors.length === 0 ? (
                   <p className="px-2 py-6 text-sm text-muted-foreground">
@@ -335,13 +351,7 @@ export default function DashboardPage() {
               <CardContent className="flex flex-col gap-1">
                 {isPending || !data ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 px-2 py-2.5">
-                      <Skeleton className="size-9 rounded-full" />
-                      <div className="space-y-1.5">
-                        <Skeleton className="h-3.5 w-28" />
-                        <Skeleton className="h-3 w-24" />
-                      </div>
-                    </div>
+                    <RecentAppointmentSkeleton key={i} />
                   ))
                 ) : data.recentAppointments.length === 0 ? (
                   <p className="px-2 py-6 text-sm text-muted-foreground">
@@ -378,7 +388,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
