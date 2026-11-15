@@ -2,21 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Globe, Menu, Mic, X } from "lucide-react";
+import { Globe, Menu, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/layout/logo";
 import { useLanguage } from "@/context/language-context";
-import { useCall } from "@/hooks/useCall";
 
 function LandingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { data: session } = authClient.useSession();
   const { lang, toggleLang, t } = useLanguage();
-  const { openForm } = useCall();
 
   const links = [
     { label: t.nav.features, href: "#features" },
@@ -67,22 +65,12 @@ function LandingNav() {
             <span>{lang === "en" ? "বাংলা" : "English"}</span>
           </button>
 
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="gradient" size="sm">
             {session ? (
               <Link href="/dashboard">{t.nav.viewDashboard}</Link>
             ) : (
               <Link href="/sign-in">{t.nav.login}</Link>
             )}
-          </Button>
-
-          <Button
-            variant="gradient"
-            size="sm"
-            onClick={openForm}
-            className="gap-2 transition-transform hover:scale-[1.03]"
-          >
-            <Mic className="size-3.5" />
-            {t.nav.talkToCaller}
           </Button>
         </div>
 
@@ -122,17 +110,7 @@ function LandingNav() {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2">
-              <Button
-                variant="gradient"
-                onClick={() => {
-                  setOpen(false);
-                  openForm();
-                }}
-              >
-                <Mic className="size-4 mr-2" />
-                {t.nav.talkToCaller}
-              </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="gradient">
                 {session ? (
                   <Link href="/dashboard" onClick={() => setOpen(false)}>
                     {t.nav.viewDashboard}
