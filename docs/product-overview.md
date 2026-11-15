@@ -164,14 +164,6 @@ Domain resources (each with its own route/controller/data trio): **doctors**, **
 (document upload → chunking → embeddings → Pinecone), read-only **calls**, and the **agent** chat endpoint.
 List endpoints are server-paginated (`page`/`limit` + filters) returning `{ items, total, page, limit }`.
 
-## Engineering — API documentation
-
-The API is documented with **OpenAPI, maintained centrally** in
-[`apps/api/src/config/swagger.ts`](../apps/api/src/config/swagger.ts) (`paths` + `components.schemas`) and
-served by `swagger-ui-express` at **`GET /api-docs`**. Route files stay routing-only — no doc comments
-scattered across them — so the spec is one artifact to read and keep in sync. Endpoints live under
-`/api/v1/<resource>` with explicit action-style paths (e.g. `POST /createDoctor`, `GET /getDoctors`).
-
 ## Engineering — the frontend (`apps/web`)
 
 **Next.js 16 (App Router) + React 19**, styled with **Tailwind v4** and a local shadcn-style component library

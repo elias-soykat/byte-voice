@@ -340,7 +340,6 @@ Rule: if a value or type is needed on both sides of the wire, it goes here. If i
 - **Async:** always `await` or explicitly `.catch`. No floating promises, especially on the voice path.
 - **Logging:** structured logs with a request/session id. No `console.log` left in committed code (allowed only behind a debug flag).
 - **No dead code / commented-out blocks** in commits. Git is the history.
-- **API docs:** the OpenAPI spec is maintained centrally in `config/swagger.ts` (`definition.paths` + `components.schemas`), so route files stay routing-only — no `@openapi` comments. It's served with `swagger-ui-express` at `/api-docs`. When you add an endpoint, add its `paths` entry (and any new `components.schemas`) in `config/swagger.ts`. (Hand-written today — fold into the zod schemas if drift becomes a problem.)
 
 ---
 

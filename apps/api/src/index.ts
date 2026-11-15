@@ -1,14 +1,12 @@
 import http from "http";
 import express from "express";
 import cors from "cors";
-import swaggerUi from "swagger-ui-express";
 import { Server } from "socket.io";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "@repo/shared";
 import { PORT, WEB_ORIGIN } from "./config/config";
-import { swaggerSpec } from "./config/swagger";
 import { registerSocketHandlers } from "./sockets/gateway";
 import doctorsRouter from "./routes/doctors.routes";
 import schedulesRouter from "./routes/schedules.routes";
@@ -51,8 +49,6 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
-
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/v1/doctors", doctorsRouter);
 app.use("/api/v1/schedules", schedulesRouter);
