@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   PhoneOff,
   XCircle,
+  Loader2,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Pagination,
   PaginationContent,
@@ -30,6 +32,7 @@ import { useDashboardStats } from "@/hooks/useAnalytics";
 import type { CallSummary, CallOutcome } from "@/types/call";
 
 import { CallsTable } from "./_components/calls-table";
+import { CallsTableSkeleton } from "./_components/calls-table-skeleton";
 import { CallDetailDialog } from "./_components/call-detail-dialog";
 import { cn } from "@/lib/utils";
 
@@ -56,10 +59,10 @@ export default function CallsPage() {
     setPage(1);
   }, [debouncedSearch, outcomeFilter]);
 
-  const { data: statsData } = useDashboardStats();
+  const { data: statsData, isPending: isStatsPending } = useDashboardStats();
   const callMetrics = statsData?.callMetrics;
 
-  const { data, isPending, isError, refetch } = useCallsList({
+  const { data, isPending, isFetching, isError, refetch } = useCallsList({
     page,
     limit: PAGE_SIZE,
     search: debouncedSearch || undefined,
@@ -79,7 +82,7 @@ export default function CallsPage() {
       />
 
       {/* Real-time Call Database Metrics Strip */}
-      {callMetrics && (
+      {callMetrics ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Total Calls</span>
@@ -118,7 +121,19 @@ export default function CallsPage() {
             </span>
           </div>
         </div>
-      )}
+      ) : isStatsPending ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs"
+            >
+              <Skeleton className="mb-2 h-3 w-16" />
+              <Skeleton className="h-7 w-12" />
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
@@ -131,6 +146,12 @@ export default function CallsPage() {
 
         {/* Outcome Filter Pills */}
         <div className="flex flex-wrap items-center gap-1.5">
+          {isFetching && !isPending && (
+            <span className="mr-1 flex items-center gap-1.5 text-xs text-muted-foreground animate-pulse">
+              <Loader2 className="size-3.5 animate-spin text-primary" />
+              <span className="hidden sm:inline">Updating…</span>
+            </span>
+          )}
           {OUTCOME_FILTERS.map((f) => {
             const active = outcomeFilter === f.value;
             const Icon = f.icon;
@@ -160,11 +181,7 @@ export default function CallsPage() {
       </div>
 
       {isPending ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-16 text-muted-foreground">
-            Loading clinical call records…
-          </CardContent>
-        </Card>
+        <CallsTableSkeleton rows={PAGE_SIZE} />
       ) : isError ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
@@ -221,7 +238,7 @@ export default function CallsPage() {
           }
         />
       ) : (
-        <>
+        <div className={cn("space-y-6 transition-opacity duration-200", isFetching && "opacity-75")}>
           <CallsTable calls={items} onSelect={setSelected} />
 
           {totalPages > 1 && (
@@ -258,7 +275,7 @@ export default function CallsPage() {
               </PaginationContent>
             </Pagination>
           )}
-        </>
+        </div>
       )}
 
       <CallDetailDialog call={selected} onClose={() => setSelected(null)} />
