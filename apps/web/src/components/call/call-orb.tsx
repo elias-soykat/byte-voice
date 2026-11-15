@@ -34,12 +34,12 @@ export function CallOrb({
         className={cn(
           "absolute inset-0 rounded-full blur-2xl transition-all duration-700",
           mode === "agentSpeaking"
-            ? "bg-emerald-400/35 scale-125"
+            ? "bg-teal-400/20 scale-115"
             : mode === "userSpeaking"
-              ? "bg-teal-400/30 scale-115"
+              ? "bg-teal-400/20 scale-110"
               : mode === "thinking"
-                ? "bg-emerald-500/25 scale-110"
-                : "bg-emerald-500/15 scale-95",
+                ? "bg-teal-500/15 scale-105"
+                : "bg-teal-500/10 scale-95",
         )}
       />
 
@@ -48,10 +48,10 @@ export function CallOrb({
         [0, 1, 2].map((ring) => (
           <motion.span
             key={ring}
-            className="absolute rounded-full border border-emerald-400/50 bg-emerald-500/10 pointer-events-none"
+            className="absolute rounded-full border border-teal-400/40 bg-teal-500/5 pointer-events-none"
             style={{ width: size, height: size }}
-            initial={{ opacity: 0.6, scale: 0.7 }}
-            animate={{ opacity: [0.6, 0], scale: [0.7, 1.8] }}
+            initial={{ opacity: 0.5, scale: 0.7 }}
+            animate={{ opacity: [0.5, 0], scale: [0.7, 1.7] }}
             transition={{
               duration: 1.8,
               repeat: Infinity,
@@ -64,9 +64,9 @@ export function CallOrb({
       {/* User mic reactive ring */}
       {mode === "userSpeaking" && (
         <motion.span
-          className="absolute rounded-full border-2 border-teal-300/80 bg-teal-400/10 pointer-events-none"
+          className="absolute rounded-full border-2 border-teal-400/60 bg-teal-400/10 pointer-events-none"
           style={{ width: size, height: size }}
-          animate={{ scale: userScale, opacity: [0.7, 0.3] }}
+          animate={{ scale: userScale, opacity: [0.6, 0.2] }}
           transition={{ duration: 0.15, ease: "easeOut" }}
         />
       )}
@@ -74,8 +74,8 @@ export function CallOrb({
       {/* Orbiting halo during thinking */}
       {mode === "thinking" && (
         <motion.div
-          className="absolute rounded-full border border-emerald-400/40 border-t-emerald-200 pointer-events-none"
-          style={{ width: core + 28, height: core + 28 }}
+          className="absolute rounded-full border border-teal-400/30 border-t-teal-200 pointer-events-none"
+          style={{ width: core + 26, height: core + 26 }}
           animate={{ rotate: 360 }}
           transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
         />
@@ -84,14 +84,14 @@ export function CallOrb({
       {/* Glowing Sphere Core */}
       <motion.div
         className={cn(
-          "relative z-10 flex items-center justify-center rounded-full shadow-2xl transition-colors duration-500",
+          "relative z-10 flex items-center justify-center rounded-full shadow-xl transition-colors duration-500",
           mode === "userSpeaking"
-            ? "bg-gradient-to-tr from-teal-600 via-emerald-500 to-teal-300 shadow-teal-500/40"
+            ? "bg-gradient-to-tr from-teal-700 via-teal-500 to-emerald-400 shadow-teal-500/30"
             : mode === "agentSpeaking"
-              ? "bg-gradient-to-tr from-emerald-700 via-emerald-500 to-mint-300 shadow-emerald-500/50"
+              ? "bg-gradient-to-tr from-teal-800 via-teal-600 to-emerald-500 shadow-teal-500/30"
               : mode === "thinking"
-                ? "bg-gradient-to-tr from-emerald-800 via-teal-600 to-emerald-400 shadow-emerald-500/35"
-                : "bg-gradient-to-tr from-emerald-700 via-emerald-600 to-teal-500 shadow-emerald-600/30",
+                ? "bg-gradient-to-tr from-slate-800 via-teal-700 to-emerald-600 shadow-teal-500/25"
+                : "bg-gradient-to-tr from-teal-800 via-teal-700 to-slate-700 shadow-teal-600/20",
         )}
         style={{ width: core, height: core }}
         animate={

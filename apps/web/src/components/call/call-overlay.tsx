@@ -107,7 +107,7 @@ export function CallOverlay() {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex h-dvh w-screen flex-col justify-between overflow-hidden bg-gradient-to-b from-slate-950/95 via-emerald-950/90 to-slate-950/98 p-4 backdrop-blur-2xl sm:p-6 md:p-8"
+          className="fixed inset-0 z-50 flex h-dvh w-screen flex-col justify-between overflow-hidden bg-slate-950/96 p-4 backdrop-blur-2xl sm:p-6 md:p-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -115,8 +115,8 @@ export function CallOverlay() {
         >
           {/* Subtle ambient medical glow */}
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-            <div className="absolute top-1/4 left-1/2 size-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/15 blur-3xl" />
-            <div className="absolute bottom-1/4 left-1/2 size-[400px] -translate-x-1/2 rounded-full bg-teal-500/10 blur-3xl" />
+            <div className="absolute top-1/4 left-1/2 size-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500/[0.04] blur-3xl" />
+            <div className="absolute bottom-1/4 left-1/2 size-[350px] -translate-x-1/2 rounded-full bg-slate-800/20 blur-3xl" />
           </div>
 
           {/* ========================================================= */}
@@ -161,19 +161,21 @@ export function CallOverlay() {
               </span>
             </div>
 
-            <CallOrb mode={mode} level={micLevel} size={190} />
+            <CallOrb mode={mode} level={micLevel} size={155} />
 
             {/* Live Transcript Frosted Glass Card */}
-            <div className="w-full max-w-lg">
+            <div className="w-full max-w-xl sm:max-w-2xl">
               <div
-                className="max-h-44 w-full space-y-2.5 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 text-left backdrop-blur-xl shadow-2xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                className="h-[260px] sm:h-[320px] md:h-[360px] max-h-[46vh] w-full space-y-3 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left backdrop-blur-xl shadow-2xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               >
                 {transcript.length === 0 ? (
-                  <p className="py-4 text-center text-xs text-white/50 italic">
-                    {lang === "bn"
-                      ? "🎤 শুরু করতে বাংলায় বা ইংরেজিতে কথা বলুন..."
-                      : "🎤 Speak naturally in Bangla or English to begin..."}
-                  </p>
+                  <div className="flex h-full items-center justify-center">
+                    <p className="text-center text-xs text-white/50 italic">
+                      {lang === "bn"
+                        ? "🎤 শুরু করতে বাংলায় বা ইংরেজিতে কথা বলুন..."
+                        : "🎤 Speak naturally in Bangla or English to begin..."}
+                    </p>
+                  </div>
                 ) : (
                   transcript.map((line) => (
                     <div
@@ -183,17 +185,17 @@ export function CallOverlay() {
                         line.role === "user" ? "items-end" : "items-start",
                       )}
                     >
-                      <span className="mb-0.5 text-[10px] font-semibold tracking-wider text-white/50 uppercase">
+                      <span className="mb-1 text-[10px] font-semibold tracking-wider text-white/50 uppercase">
                         {line.role === "user"
                           ? lang === "bn" ? "আপনি (Caller)" : "You"
                           : lang === "bn" ? "রিসেপশনিস্ট (Receptionist)" : "Receptionist (AI)"}
                       </span>
                       <div
                         className={cn(
-                          "max-w-[85%] rounded-2xl px-3.5 py-2 leading-relaxed shadow-sm",
+                          "max-w-[88%] rounded-2xl px-4 py-2.5 leading-relaxed shadow-sm",
                           line.role === "user"
-                            ? "rounded-tr-xs bg-white/15 text-white border border-white/15"
-                            : "rounded-tl-xs bg-emerald-600/35 text-emerald-50 border border-emerald-400/30 font-medium",
+                            ? "rounded-tr-xs bg-slate-800/90 text-slate-100 border border-slate-700/70"
+                            : "rounded-tl-xs bg-slate-900/95 text-white border border-slate-700/80 border-l-4 border-l-teal-400 font-normal",
                         )}
                       >
                         {line.text}
