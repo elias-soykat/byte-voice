@@ -14,7 +14,7 @@ This script provides an exact timing, screen navigation guide, and spoken voiceo
 ### Scene 1: Landing Page & Hero Section (0:00 – 0:50)
 
 **Visual:**
-- Browser is on `http://localhost:3000` (or your live deployed URL).
+- Browser is on `https://byte-voice.vercel.app` (or `http://localhost:3000`).
 - Move mouse over the 3D rotating tooth element in the hero to show real-time 3D parallax and orbital soundwaves.
 - Click the language toggle (`English` ↔ `বাংলা`) in the navigation bar to demonstrate instant bilingual translation across all sections.
 - Scroll down briefly to show **Features** (24/7 Bangla Receptionist, Code-Switching, Digit Capture, Medical Guardrail), **Use Cases** (Dental Clinics, Diagnostic Centres, Hospital OPD), and **Workflow**.

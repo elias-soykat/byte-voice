@@ -39,10 +39,10 @@ This repository delivers an end-to-end production-grade implementation of **Byte
 
 | Item | Details |
 | :--- | :--- |
-| **Portal Sign-in URL** | `/sign-in` (or `http://localhost:3000/sign-in`) |
+| **Portal Sign-in URL** | [https://byte-voice.vercel.app/sign-in](https://byte-voice.vercel.app/sign-in) (or `/sign-in`) |
 | **Reviewer Email** | `reviewer@strategybyte.com.au` |
 | **Reviewer Password** | `StrategyByte2026!` |
-| **Landing Page** | `/` (Interactive 3D Hero + 1-Click "Talk to our Bangla caller") |
+| **Landing Page** | [https://byte-voice.vercel.app](https://byte-voice.vercel.app) (Interactive 3D Hero + 1-Click "Talk to our Bangla caller") |
 | **Call Logs & Extractions** | `/calls` (Filtered by Booked, Enquiries, Follow-up Needed, Incomplete) |
 | **Doctor Management** | `/doctors` & `/doctors/[id]` (Weekly schedules & exceptions) |
 | **Appointment Calendar** | `/appointments` (Real-time bookings synced with voice agent) |
@@ -297,8 +297,8 @@ The 3-minute video presentation should be recorded following the step-by-step in
 - **2:05 – 3:00:** Reviewer login, live call appearance on `/calls`, structured extraction card, validated BD phone number, and full transcript.
 
 ### Submission Links Checklist
-- [ ] **Landing Page Live Link:** `https://your-bytevoice-app.vercel.app`
-- [ ] **Data Portal Live Link:** `https://your-bytevoice-app.vercel.app/sign-in`
+- [x] **Landing Page Live Link:** `https://byte-voice.vercel.app`
+- [x] **Data Portal Live Link:** `https://byte-voice.vercel.app/sign-in`
 - [ ] **GitHub Repository Link:** `https://github.com/your-username/byte-care`
 - [ ] **3-Minute Video Overview Link:** `https://loom.com/share/...` (or YouTube / Google Drive)
 

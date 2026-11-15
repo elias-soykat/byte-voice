@@ -18,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bytevoice.com.au"),
+  metadataBase: new URL("https://byte-voice.vercel.app"),
   title: {
     default: "ByteVoice by StrategyByte — AI Voice Receptionist for Bangladesh Healthcare",
     template: "%s · ByteVoice by StrategyByte",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   creator: "StrategyByte",
   openGraph: {
     type: "website",
-    url: "https://bytevoice.com.au",
+    url: "https://byte-voice.vercel.app",
     siteName: "ByteVoice by StrategyByte",
     title: "ByteVoice by StrategyByte — AI Voice Receptionist for Bangladesh Healthcare",
     description:

@@ -15,7 +15,7 @@ function Hero() {
   const { t } = useLanguage();
 
   return (
-    <section className="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-28">
+    <section className="relative overflow-hidden pt-28 pb-20 sm:pt-36 sm:pb-20">
       {/* Ambient glow backgrounds */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-28 left-1/2 size-[720px] -translate-x-1/2 rounded-full bg-brand-gradient opacity-[0.12] blur-3xl" />
@@ -100,7 +100,7 @@ function Hero() {
         </div>
 
         {/* Right Column: 3D Interactive Hero Visualization */}
-        <div className="lg:pl-4">
+        <div className="lg:pl-4 hidden sm:block">
           <Hero3D />
         </div>
       </div>

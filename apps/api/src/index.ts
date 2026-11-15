@@ -21,6 +21,8 @@ const app = express();
 
 const allowedOrigins = [
   WEB_ORIGIN,
+  "https://byte-voice.vercel.app",
+  "https://byte-care-web.vercel.app",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost:3001",

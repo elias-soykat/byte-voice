@@ -10,6 +10,7 @@
     "dev:web": "pnpm --filter=web dev",
     "dev:api": "pnpm --filter=api dev",
     "lint": "pnpm -r lint",
+    "test": "pnpm --filter=api test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "pnpm -r check-types"
   },
