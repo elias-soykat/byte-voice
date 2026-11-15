@@ -8,7 +8,6 @@ import {
   Loader2,
   Lock,
   Mail,
-  ShieldCheck,
   Sparkles,
   TriangleAlert,
 } from "lucide-react";
@@ -28,7 +27,7 @@ export function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Already authenticated → redirect directly to dashboard
+  // Already authenticated → redirect to dashboard
   useEffect(() => {
     if (session) router.replace("/dashboard");
   }, [session, router]);
@@ -63,51 +62,35 @@ export function SignInForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="w-full space-y-5">
+    <form onSubmit={onSubmit} className="space-y-4">
       {error && (
-        <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-3.5 text-sm text-destructive animate-in fade-in-50">
-          <TriangleAlert className="mt-0.5 size-4.5 shrink-0" />
-          <div className="leading-snug">{error}</div>
+        <div className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Reviewer Quick-Fill Banner */}
-      <div className="rounded-xl border border-emerald-500/25 bg-emerald-50/70 p-4 transition-colors hover:bg-emerald-50/90">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 font-semibold text-xs text-emerald-950">
-            <Sparkles className="size-3.5 text-emerald-600" />
-            <span>Reviewer Demo Account</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleAutofill}
-            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-xs text-white shadow-soft transition-all hover:bg-emerald-700 hover:shadow-emerald-600/30 active:scale-95 cursor-pointer"
-          >
-            Auto-fill
-          </button>
+      {/* Reviewer Quick-Fill */}
+      <div className="flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-50/60 px-3 py-2 text-xs">
+        <div className="flex items-center gap-1.5 text-emerald-950 font-medium text-[11px] sm:text-xs">
+          <Sparkles className="size-3.5 text-emerald-600 shrink-0" />
+          <span>Demo Account</span>
         </div>
-        <div className="mt-2.5 grid grid-cols-1 gap-1 text-[11px] text-muted-foreground sm:grid-cols-2">
-          <p className="truncate">
-            <span className="font-medium text-foreground/75">Email: </span>
-            <code className="rounded bg-emerald-100/60 px-1 py-0.5 font-mono text-emerald-900">
-              reviewer@strategybyte.com.au
-            </code>
-          </p>
-          <p className="truncate">
-            <span className="font-medium text-foreground/75">Pass: </span>
-            <code className="rounded bg-emerald-100/60 px-1 py-0.5 font-mono text-emerald-900">
-              StrategyByte2026!
-            </code>
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={handleAutofill}
+          className="rounded-md bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white shadow-soft transition-all hover:bg-emerald-700 active:scale-95 cursor-pointer"
+        >
+          Auto-fill
+        </button>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Email Address
+      <div className="space-y-1.5">
+        <Label htmlFor="email" className="text-xs font-medium text-foreground">
+          Email
         </Label>
         <div className="relative">
-          <Mail className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             id="email"
             type="email"
@@ -115,20 +98,18 @@ export function SignInForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="doctor@dhakadentalcare.com"
-            className="h-11 rounded-xl border-border/80 bg-background/50 pl-10 text-sm focus-visible:ring-emerald-500/30"
+            placeholder="reviewer@strategybyte.com.au"
+            className="pl-9 text-sm"
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Password
-          </Label>
-        </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="password" className="text-xs font-medium text-foreground">
+          Password
+        </Label>
         <div className="relative">
-          <Lock className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground/70" />
+          <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/70" />
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
@@ -137,19 +118,15 @@ export function SignInForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••••••"
-            className="h-11 rounded-xl border-border/80 bg-background/50 pl-10 pr-10 text-sm focus-visible:ring-emerald-500/30"
+            className="pl-9 pr-9 text-sm"
           />
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute top-1/2 right-3.5 -translate-y-1/2 text-muted-foreground/70 hover:text-foreground transition-colors cursor-pointer"
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
-            {showPassword ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
         </div>
       </div>
@@ -158,23 +135,18 @@ export function SignInForm() {
         type="submit"
         variant="gradient"
         size="lg"
-        className="h-11.5 w-full rounded-xl text-sm font-semibold shadow-soft-md transition-all hover:scale-[1.01] hover:shadow-emerald-600/30 active:scale-[0.99] cursor-pointer"
+        className="mt-2 w-full text-sm font-semibold shadow-soft cursor-pointer"
         disabled={submitting}
       >
         {submitting ? (
           <>
             <Loader2 className="size-4 animate-spin mr-2" />
-            Signing in to Portal…
+            Signing in…
           </>
         ) : (
-          "Sign In to Portal"
+          "Sign in"
         )}
       </Button>
-
-      <div className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-muted-foreground">
-        <ShieldCheck className="size-3.5 text-emerald-600" />
-        <span>Protected by encrypted clinical session authentication</span>
-      </div>
     </form>
   );
 }
