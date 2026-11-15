@@ -80,8 +80,10 @@ export const countCalls = (where: Prisma.CallWhereInput) =>
   prisma.call.count({ where });
 
 export const findCallById = (id: string) =>
-  prisma.call.findUnique({
-    where: { id },
+  prisma.call.findFirst({
+    where: {
+      OR: [{ id }, { callId: id }],
+    },
     include: {
       patient: true,
       extraction: true,

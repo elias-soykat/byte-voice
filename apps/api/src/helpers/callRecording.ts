@@ -43,21 +43,7 @@ export const finalizeCall = async (
   }
 
   const transcript = session.transcript as unknown as Prisma.InputJsonValue;
-  let audioKey: string | null = null;
-  let status: string = CallStatus.Completed;
-
-  if (session.segments.length > 0) {
-    try {
-      const mp3 = await mergeSegmentsToMp3(session.segments);
-      audioKey = await uploadCallRecording(session.callId, mp3);
-      if (!audioKey) status = CallStatus.NoAudio;
-    } catch (error) {
-      console.error(`[call] recording failed for ${session.callId}`, error);
-      status = CallStatus.Failed;
-    }
-  } else {
-    status = CallStatus.NoAudio;
-  }
+  const initialStatus = session.segments.length > 0 ? CallStatus.Completed : CallStatus.NoAudio;
 
   try {
     let callDbId = session.callDbId;
@@ -67,12 +53,11 @@ export const finalizeCall = async (
         durationSec,
         userTurns: session.userTurns,
         transcript,
-        ...(audioKey ? { audioKey } : {}),
-        status,
+        status: initialStatus,
         ...(session.patientName ? { patientName: session.patientName } : {}),
       });
       console.log(
-        `[call] updated call ${session.callId} (dbId ${callDbId}, status ${status})`,
+        `[call] updated call ${session.callId} (dbId ${callDbId})`,
       );
     } else {
       const created = await callsData.createCall({
@@ -82,15 +67,34 @@ export const finalizeCall = async (
         durationSec,
         userTurns: session.userTurns,
         transcript,
-        ...(audioKey ? { audioKey } : {}),
-        status,
+        status: initialStatus,
         ...(session.patientName ? { patientName: session.patientName } : {}),
       });
       callDbId = created.id;
-      console.log(`[call] saved ${session.callId} (status ${status})`);
+      console.log(`[call] saved ${session.callId}`);
     }
 
-    // Await clinical extraction to verify DB persistence and get real summary
+    // Process audio segments merge and S3 upload asynchronously in the background.
+    // This decouples heavy multi-segment ffmpeg transcoding from post-call summary delivery.
+    if (session.segments.length > 0) {
+      void (async () => {
+        try {
+          const mp3 = await mergeSegmentsToMp3(session.segments);
+          const audioKey = await uploadCallRecording(session.callId, mp3);
+          const finalAudioStatus = audioKey ? CallStatus.Completed : CallStatus.NoAudio;
+          await callsData.updateCall(callDbId, {
+            ...(audioKey ? { audioKey } : {}),
+            status: finalAudioStatus,
+          });
+          console.log(`[call] audio merged and saved for ${session.callId}`);
+        } catch (audioErr) {
+          console.error(`[call] recording failed for ${session.callId}`, audioErr);
+          await callsData.updateCall(callDbId, { status: CallStatus.Failed });
+        }
+      })();
+    }
+
+    // Await clinical extraction immediately on the transcript (finishes in ~1.5s)
     let extractionResult = null;
     try {
       extractionResult = await processCallExtraction({

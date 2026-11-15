@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CalendarClock, Clock, Lock, Pencil, Sparkles } from "lucide-react";
+import { CalendarClock, Clock, Pencil } from "lucide-react";
 
 import { getInitials } from "@/lib/utils";
 import { useDoctor } from "@/hooks/useDoctors";
@@ -179,7 +179,7 @@ export default function DoctorProfilePage() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Manage this doctor's working hours and appointment availability.
+                Manage this doctor&apos;s working hours and appointment availability.
                 Keep schedules updated to ensure patients can book suitable time
                 slots.
               </p>

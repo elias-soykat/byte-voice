@@ -1,12 +1,8 @@
 "use client";
 
 import {
-  Activity,
   CalendarCheck,
   Clock,
-  Lock,
-  PhoneCall,
-  Sparkles,
   Stethoscope,
   TriangleAlert,
   Users,
@@ -42,35 +38,6 @@ function ChartCard({
   );
 }
 
-function SoonCard({
-  label,
-  icon: Icon,
-}: {
-  label: string;
-  icon: typeof PhoneCall;
-}) {
-  return (
-    <Card className="border-dashed border-emerald-500/25 bg-emerald-50/20">
-      <CardContent className="flex items-start justify-between p-6">
-        <div className="space-y-1">
-          <span className="text-sm font-medium text-muted-foreground">
-            {label}
-          </span>
-          <div className="flex items-center gap-1.5 text-foreground">
-            <Sparkles className="size-4 text-emerald-600" />
-            <Badge variant="info">
-              <Lock className="size-3" />
-              Live in Calls tab
-            </Badge>
-          </div>
-        </div>
-        <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20">
-          <Icon className="size-5" strokeWidth={1.85} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function AnalyticsPage() {
   const { data, isPending, isError, refetch } = useAnalytics();

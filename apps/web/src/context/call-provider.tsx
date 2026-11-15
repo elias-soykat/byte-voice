@@ -26,6 +26,7 @@ import {
   stopStream,
   type UtteranceRecorder,
 } from "@/lib/audio";
+import { getCallById } from "@/services/calls";
 
 export type CallStatus = "idle" | "connecting" | "live" | "finalizing";
 
@@ -77,6 +78,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
   const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const currentCallIdRef = useRef<string | null>(null);
   const callerDetailsRef = useRef<CallerDetails | null>(null);
 
@@ -217,14 +219,80 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socketRef.current.emit(SocketEvent.CallEnd);
     }
 
-    // Fallback timer: if no summary arrives in 8 seconds, open fallback summary
+    const targetCallId = currentCallIdRef.current;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+
+    // Active polling fallback: after 3.5s, if socket event hasn't delivered, query REST API
+    pollTimerRef.current = setTimeout(async () => {
+      if (!targetCallId) return;
+      try {
+        const data = await getCallById(targetCallId);
+        if (data && (data.extraction || data.outcome)) {
+          console.log("[VoiceCall] Retrieved call summary via REST fallback", data);
+          const appt =
+            data.appointment ??
+            (
+              data as unknown as {
+                appointments?: {
+                  id: string;
+                  startTime: string;
+                  doctor?: { name: string; speciality: string };
+                }[];
+              }
+            ).appointments?.[0];
+
+          setSummary({
+            callId: data.callId || targetCallId,
+            durationSec: data.durationSec || callDuration,
+            patientName:
+              data.extraction?.patientName ||
+              data.patientName ||
+              callerDetailsRef.current?.name ||
+              null,
+            phone: data.extraction?.phone || data.patientPhone || null,
+            reasonForVisit: data.extraction?.reasonForVisit || null,
+            preferredDateTime: data.extraction?.preferredDateTime || null,
+            outcome: data.extraction?.outcome || data.outcome || "INCOMPLETE",
+            appointment: appt
+              ? {
+                  id: appt.id,
+                  doctorName: appt.doctor?.name || null,
+                  doctorSpeciality: appt.doctor?.speciality || null,
+                  startTime: appt.startTime || null,
+                }
+              : null,
+            nextActions: {
+              appointmentRecorded: Boolean(appt || data.outcome === "BOOKED"),
+              patientDetailsSaved: Boolean(
+                data.patient || data.patientName || data.extraction?.patientName,
+              ),
+              transcriptAvailable:
+                (data.transcript && data.transcript.length > 0) ||
+                transcript.length > 0,
+            },
+            notes: data.extraction?.notes || null,
+            status: "success",
+          });
+          setIsSummaryOpen(true);
+          setStatus("idle");
+          if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+          }
+        }
+      } catch (pollErr) {
+        console.warn("[VoiceCall] Polling fallback attempt pending/failed:", pollErr);
+      }
+    }, 3500);
+
+    // Hard fallback safety timer (25s)
     fallbackTimerRef.current = setTimeout(() => {
       console.warn("[VoiceCall] Summary event timed out, using client fallback summary");
       setSummary((prev) => {
         if (prev) return prev;
         return {
-          callId: currentCallIdRef.current || "call-session",
+          callId: targetCallId || "call-session",
           durationSec: callDuration,
           patientName: callerDetailsRef.current?.name ?? null,
           phone: null,
@@ -247,13 +315,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
-    }, 8000);
+    }, 25000);
   }, [status, stopAndClearAgentPlayback, callDuration, transcript.length]);
 
   const closeSummary = useCallback(() => {
     if (fallbackTimerRef.current) {
       clearTimeout(fallbackTimerRef.current);
       fallbackTimerRef.current = null;
+    }
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
     teardown();
     setIsSummaryOpen(false);
@@ -465,6 +537,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         if (fallbackTimerRef.current) {
           clearTimeout(fallbackTimerRef.current);
           fallbackTimerRef.current = null;
+        }
+        if (pollTimerRef.current) {
+          clearTimeout(pollTimerRef.current);
+          pollTimerRef.current = null;
         }
         if (payload.durationSec) {
           setCallDuration(payload.durationSec);
