@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CalendarClock, Lock, Pencil, Sparkles } from "lucide-react";
+import { CalendarClock, Clock, Lock, Pencil, Sparkles } from "lucide-react";
 
 import { getInitials } from "@/lib/utils";
 import { useDoctor } from "@/hooks/useDoctors";
@@ -162,28 +162,27 @@ export default function DoctorProfilePage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Phase 2 placeholder */}
+          {/* Doctor availability */}
           <Card className="border-dashed bg-background">
             <CardContent className="flex flex-col items-start gap-3 pt-6">
               <div className="flex items-center gap-2">
                 <span className="flex size-8 items-center justify-center rounded-lg bg-brand-gradient">
-                  <Sparkles className="size-4 text-white" />
+                  <CalendarClock className="size-4 text-white" />
                 </span>
                 <span className="text-sm font-semibold text-foreground">
-                  AI Assistant Assigned
+                  Availability Schedule
                 </span>
                 <Badge variant="info" className="ml-1">
-                  <Lock className="size-3" />
-                  Soon
+                  <Clock className="size-3" />
+                  Schedule
                 </Badge>
               </div>
+
               <p className="text-sm text-muted-foreground">
-                Assign an AI voice receptionist to handle this doctor&apos;s
-                calls, bookings, and FAQs. Coming in the next release.
+                Manage this doctor's working hours and appointment availability.
+                Keep schedules updated to ensure patients can book suitable time
+                slots.
               </p>
-              <Button variant="outline" size="sm" disabled>
-                Configure assistant
-              </Button>
             </CardContent>
           </Card>
         </div>
