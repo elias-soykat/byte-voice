@@ -16,12 +16,8 @@ function Logo({
       className={cn("group flex items-center gap-2.5", className)}
       aria-label="StrategyByte ByteVoice home"
     >
-      <span className="relative flex size-9 items-center justify-center rounded-xl bg-brand-gradient shadow-soft-md ring-1 ring-emerald-500/30 transition-transform group-hover:scale-105">
+      <span className="relative flex size-9 items-center justify-center rounded-lg bg-brand-gradient shadow-soft-md ring-1 ring-emerald-500/30 transition-transform">
         <Mic className="size-4.5 text-white" strokeWidth={2.25} />
-        <span className="absolute -top-0.5 -right-0.5 flex size-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
-          <span className="relative inline-flex size-2.5 rounded-full border-2 border-white bg-emerald-400" />
-        </span>
       </span>
       <div className="flex flex-col leading-tight">
         <span className="text-[1.05rem] font-bold tracking-tight text-foreground">
