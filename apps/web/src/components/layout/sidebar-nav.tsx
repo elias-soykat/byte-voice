@@ -11,7 +11,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 flex-col gap-1 px-3">
+    <nav className="flex flex-1 flex-col gap-3 px-3">
       {navItems.map((item) => {
         const active =
           pathname === item.href || pathname.startsWith(`${item.href}/`);

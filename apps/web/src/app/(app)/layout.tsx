@@ -11,7 +11,7 @@ export default function AppLayout({
       <Sidebar />
       <div className="lg:pl-[260px]">
         <Topbar />
-        <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main className="mx-auto w-full max-w-[1280px] px-4 py-6 sm:px-6 lg:px-8 lg:pt-8 lg:pb-16">
           {children}
         </main>
       </div>
