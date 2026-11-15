@@ -162,15 +162,15 @@ export default function DashboardPage() {
                   <span>
                     Avg Duration:{" "}
                     <strong className="text-foreground">
-                      {Math.floor(data.callMetrics.averageDurationSec / 60)}m{" "}
-                      {data.callMetrics.averageDurationSec % 60}s
+                      {Math.floor((data.callMetrics?.averageDurationSec ?? 0) / 60)}m{" "}
+                      {(data.callMetrics?.averageDurationSec ?? 0) % 60}s
                     </strong>
                   </span>
                   <span>·</span>
                   <span>
                     Conversion:{" "}
                     <strong className="text-emerald-700">
-                      {data.callMetrics.bookingConversionRate}%
+                      {data.callMetrics?.bookingConversionRate ?? 0}%
                     </strong>
                   </span>
                 </div>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
                   <StatCard
                     size="compact"
                     label="Total Calls"
-                    value={data.callMetrics?.totalCalls}
+                    value={data.callMetrics?.totalCalls ?? 0}
                     icon={PhoneCall}
                     iconBg="bg-slate-100 ring-slate-200"
                     iconColor="text-slate-700"
@@ -200,7 +200,7 @@ export default function DashboardPage() {
                   <StatCard
                     size="compact"
                     label="Bookings Made"
-                    value={data.callMetrics.successfulBookings}
+                    value={data.callMetrics?.successfulBookings ?? 0}
                     icon={CheckCircle2}
                     iconBg="bg-emerald-50 ring-emerald-500/20"
                     iconColor="text-emerald-700"
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                   <StatCard
                     size="compact"
                     label="Enquiries"
-                    value={data.callMetrics.enquiries}
+                    value={data.callMetrics?.enquiries ?? 0}
                     icon={HelpCircle}
                     iconBg="bg-sky-50 ring-sky-500/20"
                     iconColor="text-sky-700"
@@ -216,7 +216,7 @@ export default function DashboardPage() {
                   <StatCard
                     size="compact"
                     label="Follow-ups"
-                    value={data.callMetrics.followUpsNeeded}
+                    value={data.callMetrics?.followUpsNeeded ?? 0}
                     icon={AlertTriangle}
                     iconBg="bg-amber-50 ring-amber-500/20"
                     iconColor="text-amber-700"
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                   <StatCard
                     size="compact"
                     label="Failed Calls"
-                    value={data.callMetrics.failedCalls}
+                    value={data.callMetrics?.failedCalls ?? 0}
                     icon={PhoneOff}
                     iconBg="bg-rose-50 ring-rose-500/20"
                     iconColor="text-rose-700"
@@ -232,7 +232,7 @@ export default function DashboardPage() {
                   <StatCard
                     size="compact"
                     label="Conversion Rate"
-                    value={`${data.callMetrics.bookingConversionRate}%`}
+                    value={`${data.callMetrics?.bookingConversionRate ?? 0}%`}
                     icon={TrendingUp}
                     iconBg="bg-emerald-50 ring-emerald-500/20"
                     iconColor="text-emerald-700"
@@ -249,14 +249,14 @@ export default function DashboardPage() {
                 {isPending || !data ? (
                   <BarChartSkeleton height={230} />
                 ) : (
-                  <WeeklyCallsChart data={data.callMetrics.weeklyCalls} />
+                  <WeeklyCallsChart data={data.callMetrics?.weeklyCalls ?? []} />
                 )}
               </ChartCard>
               <ChartCard title="Call Outcomes" className="border-border/80">
                 {isPending || !data ? (
                   <DonutChartSkeleton height={200} />
                 ) : (
-                  <CallOutcomeChart data={data.callMetrics.callsByOutcome} />
+                  <CallOutcomeChart data={data.callMetrics?.callsByOutcome ?? []} />
                 )}
               </ChartCard>
             </div>

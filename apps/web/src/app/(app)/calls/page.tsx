@@ -87,37 +87,37 @@ export default function CallsPage() {
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Total Calls</span>
             <span className="mt-1 text-xl font-bold text-foreground">
-              {callMetrics.totalCalls}
+              {callMetrics?.totalCalls ?? 0}
             </span>
           </div>
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Bookings</span>
             <span className="mt-1 text-xl font-bold text-emerald-600">
-              {callMetrics.successfulBookings}
+              {callMetrics?.successfulBookings ?? 0}
             </span>
           </div>
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Enquiries</span>
             <span className="mt-1 text-xl font-bold text-sky-600">
-              {callMetrics.enquiries}
+              {callMetrics?.enquiries ?? 0}
             </span>
           </div>
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Follow-ups</span>
             <span className="mt-1 text-xl font-bold text-amber-600">
-              {callMetrics.followUpsNeeded}
+              {callMetrics?.followUpsNeeded ?? 0}
             </span>
           </div>
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Failed</span>
             <span className="mt-1 text-xl font-bold text-rose-600">
-              {callMetrics.failedCalls}
+              {callMetrics?.failedCalls ?? 0}
             </span>
           </div>
           <div className="flex flex-col rounded-xl border border-border/80 bg-card p-3 shadow-xs">
             <span className="text-xs text-muted-foreground">Conversion</span>
             <span className="mt-1 text-xl font-bold text-emerald-700">
-              {callMetrics.bookingConversionRate}%
+              {callMetrics?.bookingConversionRate ?? 0}%
             </span>
           </div>
         </div>

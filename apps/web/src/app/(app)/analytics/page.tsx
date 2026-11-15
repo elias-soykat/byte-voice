@@ -160,8 +160,9 @@ export default function AnalyticsPage() {
                   <span>
                     Average Duration:{" "}
                     <strong className="text-foreground">
-                      {Math.floor(data.callMetrics.averageDurationSec / 60)}m{" "}
-                      {data.callMetrics.averageDurationSec % 60}s ({data.callMetrics.averageDurationSec}s)
+                      {Math.floor((data.callMetrics?.averageDurationSec ?? 0) / 60)}m{" "}
+                      {(data.callMetrics?.averageDurationSec ?? 0) % 60}s (
+                      {data.callMetrics?.averageDurationSec ?? 0}s)
                     </strong>
                   </span>
                 </div>
@@ -179,7 +180,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Total Calls"
-                    value={data.callMetrics?.totalCalls}
+                    value={data.callMetrics?.totalCalls ?? 0}
                     icon={PhoneCall}
                     iconBg="bg-slate-100 ring-slate-200"
                     iconColor="text-slate-700"
@@ -187,7 +188,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Bookings Made"
-                    value={data.callMetrics.successfulBookings}
+                    value={data.callMetrics?.successfulBookings ?? 0}
                     icon={CheckCircle2}
                     iconBg="bg-emerald-50 ring-emerald-500/20"
                     iconColor="text-emerald-700"
@@ -195,7 +196,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Enquiries"
-                    value={data.callMetrics.enquiries}
+                    value={data.callMetrics?.enquiries ?? 0}
                     icon={HelpCircle}
                     iconBg="bg-sky-50 ring-sky-500/20"
                     iconColor="text-sky-700"
@@ -203,7 +204,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Follow-ups"
-                    value={data.callMetrics.followUpsNeeded}
+                    value={data.callMetrics?.followUpsNeeded ?? 0}
                     icon={AlertTriangle}
                     iconBg="bg-amber-50 ring-amber-500/20"
                     iconColor="text-amber-700"
@@ -211,7 +212,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Failed Calls"
-                    value={data.callMetrics.failedCalls}
+                    value={data.callMetrics?.failedCalls ?? 0}
                     icon={PhoneOff}
                     iconBg="bg-rose-50 ring-rose-500/20"
                     iconColor="text-rose-700"
@@ -219,7 +220,7 @@ export default function AnalyticsPage() {
                   <StatCard
                     size="compact"
                     label="Conversion Rate"
-                    value={`${data.callMetrics.bookingConversionRate}%`}
+                    value={`${data.callMetrics?.bookingConversionRate ?? 0}%`}
                     icon={TrendingUp}
                     iconBg="bg-emerald-50 ring-emerald-500/20"
                     iconColor="text-emerald-700"
@@ -234,14 +235,14 @@ export default function AnalyticsPage() {
                 {isPending || !data ? (
                   <Skeleton className="h-[230px] w-full" />
                 ) : (
-                  <WeeklyCallsChart data={data.callMetrics.weeklyCalls} />
+                  <WeeklyCallsChart data={data.callMetrics?.weeklyCalls ?? []} />
                 )}
               </ChartCard>
               <ChartCard title="Call Outcomes Distribution">
                 {isPending || !data ? (
                   <Skeleton className="h-[200px] w-full" />
                 ) : (
-                  <CallOutcomeChart data={data.callMetrics.callsByOutcome} />
+                  <CallOutcomeChart data={data.callMetrics?.callsByOutcome ?? []} />
                 )}
               </ChartCard>
             </div>
