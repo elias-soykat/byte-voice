@@ -15,11 +15,13 @@ import { chatModel } from "../libs/chatModel";
 import {
   listDoctorsTool,
   makeBookAppointmentTool,
+  makeCancelAppointmentTool,
+  makeRescheduleAppointmentTool,
 } from "./tools/appointment.tools";
 import { messageText, type AgentStateType } from "./state";
 
 const FALLBACK =
-  "আমি আপনাকে ঢাকা ডেন্টাল কেয়ারে অ্যাপয়েন্টমেন্ট বুকিংয়ে সাহায্য করতে পারি — অনুগ্রহ করে আপনার নাম, মোবাইল নম্বর এবং কোন দিন ও সময়ে দেখাতে চান তা বলুন।";
+  "আমি আপনাকে ঢাকা ডেন্টাল কেয়ারে অ্যাপয়েন্টমেন্ট বুকিং, পরিবর্তন বা বাতিলে সাহায্য করতে পারি — অনুগ্রহ করে আপনার নাম, মোবাইল নম্বর এবং কোন দিন ও সময়ে দেখাতে চান তা বলুন।";
 
 // Appointment agent — explicit tool-calling loop in natural Bangla.
 export const appointmentNode = async (
@@ -33,10 +35,25 @@ export const appointmentNode = async (
     ...(state.patientName ? { patientName: state.patientName } : {}),
     ...(state.email ? { patientEmail: state.email } : {}),
   });
-  const tools = [listDoctorsTool, bookAppointmentTool];
+  const rescheduleAppointmentTool = makeRescheduleAppointmentTool({
+    ...(state.patientName ? { patientName: state.patientName } : {}),
+    ...(state.email ? { patientEmail: state.email } : {}),
+  });
+  const cancelAppointmentTool = makeCancelAppointmentTool({
+    ...(state.patientName ? { patientName: state.patientName } : {}),
+  });
+
+  const tools = [
+    listDoctorsTool,
+    bookAppointmentTool,
+    rescheduleAppointmentTool,
+    cancelAppointmentTool,
+  ];
   const toolsByName: Record<string, StructuredToolInterface> = {
     list_doctors: listDoctorsTool,
     book_appointment: bookAppointmentTool,
+    reschedule_appointment: rescheduleAppointmentTool,
+    cancel_appointment: cancelAppointmentTool,
   };
 
   const llm = chatModel().bindTools(tools);

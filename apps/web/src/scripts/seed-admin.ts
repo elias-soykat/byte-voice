@@ -7,21 +7,13 @@ nextEnv.loadEnvConfig(process.cwd());
 process.env.BETTER_AUTH_ALLOW_SIGNUP = "true";
 
 const ADMIN_NAME = process.env.ADMIN_NAME ?? "Admin";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@strategybyte.com.au";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "StrategyByte2026!";
 
 async function main() {
   if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET) {
     console.error(
       "DATABASE_URL and BETTER_AUTH_SECRET must be set in apps/web/.env before seeding.",
-    );
-    process.exit(1);
-  }
-
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
-    console.error(
-      "ADMIN_EMAIL and ADMIN_PASSWORD must be set in apps/web/.env before seeding. " +
-        "Choose a strong, unique password — this is the single admin account.",
     );
     process.exit(1);
   }
@@ -77,7 +69,7 @@ async function main() {
     console.log("Verified / created Better Auth tables (user, session, account, verification).");
 
     // Clean up any stale user records for admin emails
-    const emailsToSeed = [ADMIN_EMAIL, "reviewer@bytecare.com"].filter(Boolean) as string[];
+    const emailsToSeed = [ADMIN_EMAIL, "reviewer@strategybyte.com.au", "reviewer@bytecare.com"].filter(Boolean) as string[];
     for (const em of emailsToSeed) {
       const existing = await directPool.query('SELECT id FROM "user" WHERE email = $1;', [em]);
       if (existing.rows.length > 0) {
@@ -98,7 +90,7 @@ async function main() {
 
   const accounts = [
     { name: ADMIN_NAME, email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
-    { name: "StrategyByte Reviewer", email: "reviewer@bytecare.com", password: ADMIN_PASSWORD },
+    { name: "StrategyByte Reviewer", email: "reviewer@strategybyte.com.au", password: "StrategyByte2026!" },
   ];
 
   for (const acc of accounts) {

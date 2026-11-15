@@ -10,7 +10,7 @@ import { useLanguage } from "@/context/language-context";
 import { Hero3D } from "./hero-3d";
 
 function Hero() {
-  const { openForm } = useCall();
+  const { startDirectCall } = useCall();
   const { data: session } = authClient.useSession();
   const { t } = useLanguage();
 
@@ -48,7 +48,7 @@ function Hero() {
             <Button
               variant="gradient"
               size="lg"
-              onClick={openForm}
+              onClick={startDirectCall}
               className="h-12 px-6 text-base font-semibold shadow-soft-lg transition-all hover:scale-[1.03] hover:shadow-emerald-500/25"
             >
               <Mic className="size-5 mr-2 animate-pulse text-white" />
