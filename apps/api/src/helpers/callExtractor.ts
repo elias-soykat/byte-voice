@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { routerModel } from "../libs/chatModel";
 import { CallOutcome } from "../generated/prisma/client";
+import { prisma } from "../libs/prisma";
 import * as callsData from "../data/calls.data";
 import * as patientsData from "../data/patients.data";
 
@@ -93,6 +94,23 @@ export interface TranscriptTurn {
   at?: number;
 }
 
+export interface ProcessedCallSummary {
+  extracted: ExtractedCallData;
+  patientId?: string | undefined;
+  patientName?: string | undefined;
+  normalizedPhone?: string | null | undefined;
+  isPhoneValid: boolean;
+  appointment?: {
+    id: string;
+    doctorName: string;
+    doctorSpeciality: string;
+    startTime: string;
+  } | null | undefined;
+  patientDetailsSaved: boolean;
+  appointmentRecorded: boolean;
+  transcriptAvailable: boolean;
+}
+
 const EXTRACTION_SYSTEM_PROMPT = `You are a clinical data extraction specialist for Dhaka Dental Care (StrategyByte ByteVoice).
 Analyze the phone conversation transcript between the patient and the AI receptionist.
 Extract structured details according to the schema:
@@ -107,7 +125,8 @@ Provide a concise, professional summary note for the clinic staff.`;
 
 /**
  * Extracts structured patient details and outcomes from a completed call transcript,
- * validates Bangladeshi phone numbers, upserts the Patient entity, and saves the CallExtraction.
+ * validates Bangladeshi phone numbers, upserts the Patient entity, verifies linked appointment in DB,
+ * and saves the CallExtraction. Returns structured verification data for post-call summary.
  */
 export const processCallExtraction = async (params: {
   callDbId: string;
@@ -115,11 +134,11 @@ export const processCallExtraction = async (params: {
   transcript: TranscriptTurn[];
   fallbackPatientName?: string;
   fallbackEmail?: string;
-}): Promise<void> => {
+}): Promise<ProcessedCallSummary | null> => {
   const { callDbId, transcript, fallbackPatientName, fallbackEmail } = params;
 
   if (!transcript || transcript.length === 0) {
-    return;
+    return null;
   }
 
   try {
@@ -140,6 +159,7 @@ export const processCallExtraction = async (params: {
     );
 
     let patientId: string | undefined = undefined;
+    let patientDetailsSaved = false;
 
     // If we have a validated or usable phone and a name, associate or create patient
     if (normalizedPhone && patientName) {
@@ -150,6 +170,7 @@ export const processCallExtraction = async (params: {
           ...(fallbackEmail ? { email: fallbackEmail } : {}),
         });
         patientId = patient.id;
+        patientDetailsSaved = true;
       } catch (err) {
         console.error("[callExtractor] Error upserting patient:", err);
       }
@@ -161,6 +182,71 @@ export const processCallExtraction = async (params: {
         ? "INVALID_PHONE"
         : "NEEDS_REVIEW";
 
+    // Verify whether an appointment was actually persisted in the DB
+    let verifiedAppointment: {
+      id: string;
+      doctorName: string;
+      doctorSpeciality: string;
+      startTime: string;
+    } | null = null;
+    let appointmentRecorded = false;
+
+    try {
+      let linkedAppointment = await prisma.appointment.findFirst({
+        where: {
+          OR: [
+            { callId: callDbId },
+            ...(patientId ? [{ patientId }] : []),
+            ...(normalizedPhone ? [{ patientPhone: normalizedPhone }] : []),
+            ...(patientName
+              ? [
+                  {
+                    patientName,
+                    createdAt: { gte: new Date(Date.now() - 30 * 60 * 1000) },
+                  },
+                ]
+              : []),
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        include: { doctor: { select: { id: true, name: true, speciality: true } } },
+      });
+
+      if (linkedAppointment) {
+        if (!linkedAppointment.callId) {
+          linkedAppointment = await prisma.appointment.update({
+            where: { id: linkedAppointment.id },
+            data: {
+              callId: callDbId,
+              ...(patientId && !linkedAppointment.patientId ? { patientId } : {}),
+              ...(normalizedPhone && !linkedAppointment.patientPhone
+                ? { patientPhone: normalizedPhone }
+                : {}),
+            },
+            include: { doctor: { select: { id: true, name: true, speciality: true } } },
+          });
+        }
+
+        verifiedAppointment = {
+          id: linkedAppointment.id,
+          doctorName: linkedAppointment.doctor.name,
+          doctorSpeciality: linkedAppointment.doctor.speciality,
+          startTime: linkedAppointment.startTime.toISOString(),
+        };
+        appointmentRecorded = linkedAppointment.status === "BOOKED";
+      }
+    } catch (apptErr) {
+      console.error("[callExtractor] Error verifying linked appointment:", apptErr);
+    }
+
+    // Truth-in-booking: Only claim BOOKED if an actual appointment record exists in DB
+    let finalOutcome: CallOutcome = extracted.outcome as CallOutcome;
+    if (finalOutcome === "BOOKED" && !appointmentRecorded) {
+      finalOutcome = extracted.reasonForVisit ? CallOutcome.ENQUIRY : CallOutcome.INCOMPLETE;
+    } else if (appointmentRecorded) {
+      finalOutcome = CallOutcome.BOOKED;
+    }
+
     // Save structured extraction
     await callsData.saveCallExtraction({
       callId: callDbId,
@@ -170,23 +256,39 @@ export const processCallExtraction = async (params: {
       ...(extracted.reasonForVisit ? { reasonForVisit: extracted.reasonForVisit } : {}),
       ...(extracted.preferredDateTime ? { preferredDateTime: extracted.preferredDateTime } : {}),
       intent: extracted.intent,
-      outcome: extracted.outcome as CallOutcome,
+      outcome: finalOutcome,
       notes: extracted.notes,
       validationStatus,
     });
 
     // Update Call record with outcome and patient reference
     await callsData.updateCall(callDbId, {
-      outcome: extracted.outcome as CallOutcome,
+      outcome: finalOutcome,
       ...(patientName ? { patientName } : {}),
       ...(normalizedPhone ? { patientPhone: normalizedPhone } : {}),
       ...(patientId ? { patient: { connect: { id: patientId } } } : {}),
     });
 
     console.log(
-      `[callExtractor] Successfully processed call ${callDbId}: outcome=${extracted.outcome}, phone=${normalizedPhone}`,
+      `[callExtractor] Successfully processed call ${callDbId}: outcome=${finalOutcome}, phone=${normalizedPhone}, apptRecorded=${appointmentRecorded}`,
     );
+
+    return {
+      extracted: {
+        ...extracted,
+        outcome: finalOutcome,
+      },
+      patientId,
+      patientName,
+      normalizedPhone,
+      isPhoneValid,
+      appointment: verifiedAppointment,
+      patientDetailsSaved,
+      appointmentRecorded,
+      transcriptAvailable: transcript.length > 0,
+    };
   } catch (error) {
     console.error(`[callExtractor] Failed extracting call data for ${callDbId}:`, error);
+    return null;
   }
 };

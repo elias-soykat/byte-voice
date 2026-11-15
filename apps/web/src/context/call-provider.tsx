@@ -16,6 +16,7 @@ import {
   type AgentResponsePayload,
   type TranscriptFinalPayload,
   type CallReadyPayload,
+  type CallSummaryPayload,
 } from "@repo/shared";
 import { createCallSocket, type CallSocket } from "@/lib/socket";
 import {
@@ -26,7 +27,7 @@ import {
   type UtteranceRecorder,
 } from "@/lib/audio";
 
-export type CallStatus = "idle" | "connecting" | "live";
+export type CallStatus = "idle" | "connecting" | "live" | "finalizing";
 
 export type Caption = { id: number; role: "user" | "agent"; text: string };
 
@@ -44,11 +45,15 @@ export type CallContextValue = {
   muted: boolean;
   error: string | null;
   transcript: Caption[];
+  summary: CallSummaryPayload | null;
+  isSummaryOpen: boolean;
+  callDuration: number;
   openForm: () => void;
   closeForm: () => void;
   startCall: (patient?: CallerDetails) => void;
   startDirectCall: () => void;
   endCall: () => void;
+  closeSummary: () => void;
   toggleMute: () => void;
 };
 
@@ -65,6 +70,16 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<Caption[]>([]);
 
+  // Post-call summary state
+  const [summary, setSummary] = useState<CallSummaryPayload | null>(null);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
+
+  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const currentCallIdRef = useRef<string | null>(null);
+  const callerDetailsRef = useRef<CallerDetails | null>(null);
+
   const socketRef = useRef<CallSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<UtteranceRecorder | null>(null);
@@ -80,6 +95,22 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // Turn management & barge-in tracking
   const turnIdRef = useRef(1);
   const interruptedTurnsRef = useRef<Set<number>>(new Set());
+
+  // Track duration while call is live
+  useEffect(() => {
+    if (status === "live") {
+      setCallDuration(0);
+      durationTimerRef.current = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+      return () => {
+        if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+      };
+    }
+    if (status === "idle" && !isSummaryOpen) {
+      setCallDuration(0);
+    }
+  }, [status, isSummaryOpen]);
 
   const addCaption = useCallback((role: "user" | "agent", text: string) => {
     captionId.current += 1;
@@ -108,23 +139,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Explicit user interruption / barge-in handler
-  const interruptAgent = useCallback(
-    (_reason = "voice-barge-in") => {
-      const wasAgentActive = agentSpeakingRef.current || playingRef.current;
-      const playedMs = stopAndClearAgentPlayback();
+  const interruptAgent = useCallback(() => {
+    const wasAgentActive = agentSpeakingRef.current || playingRef.current;
+    const playedMs = stopAndClearAgentPlayback();
 
-      const activeTurn = turnIdRef.current;
-      interruptedTurnsRef.current.add(activeTurn);
+    const activeTurn = turnIdRef.current;
+    interruptedTurnsRef.current.add(activeTurn);
 
-      if (socketRef.current?.connected) {
-        socketRef.current.emit(SocketEvent.UserInterrupt, {
-          turnId: activeTurn,
-          agentPlaybackMs: wasAgentActive ? playedMs : 0,
-        });
-      }
-    },
-    [stopAndClearAgentPlayback],
-  );
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(SocketEvent.UserInterrupt, {
+        turnId: activeTurn,
+        agentPlaybackMs: wasAgentActive ? playedMs : 0,
+      });
+    }
+  }, [stopAndClearAgentPlayback]);
 
   const teardown = useCallback(() => {
     meterCleanupRef.current?.();
@@ -154,19 +182,87 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, [stopAndClearAgentPlayback]);
 
   const endCall = useCallback(() => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(SocketEvent.CallEnd);
+    if (status === "idle" || status === "finalizing") return;
+
+    // Immediately stop mic input and level meter
+    if (meterCleanupRef.current) {
+      meterCleanupRef.current();
+      meterCleanupRef.current = null;
     }
-    teardown();
-    setStatus("idle");
+    if (recorderRef.current) {
+      recorderRef.current.cancel();
+      recorderRef.current = null;
+    }
+    if (streamRef.current) {
+      stopStream(streamRef.current);
+      streamRef.current = null;
+    }
+
+    // Immediately stop agent audio playback and clear queue
+    stopAndClearAgentPlayback();
+
+    // Reset voice activity indicators
     setUserSpeaking(false);
     setAgentSpeaking(false);
     setProcessing(false);
     setMicLevel(0);
-    setMuted(false);
-    setTranscript([]);
     mutedRef.current = false;
     userSpeakingRef.current = false;
+    agentSpeakingRef.current = false;
+
+    // Transition to finalizing
+    setStatus("finalizing");
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(SocketEvent.CallEnd);
+    }
+
+    // Fallback timer: if no summary arrives in 8 seconds, open fallback summary
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    fallbackTimerRef.current = setTimeout(() => {
+      console.warn("[VoiceCall] Summary event timed out, using client fallback summary");
+      setSummary((prev) => {
+        if (prev) return prev;
+        return {
+          callId: currentCallIdRef.current || "call-session",
+          durationSec: callDuration,
+          patientName: callerDetailsRef.current?.name ?? null,
+          phone: null,
+          reasonForVisit: null,
+          preferredDateTime: null,
+          outcome: "INCOMPLETE",
+          appointment: null,
+          nextActions: {
+            appointmentRecorded: false,
+            patientDetailsSaved: false,
+            transcriptAvailable: transcript.length > 0,
+          },
+          notes: "Call ended. Details stored in clinic database.",
+          status: "partial",
+        };
+      });
+      setIsSummaryOpen(true);
+      setStatus("idle");
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    }, 8000);
+  }, [status, stopAndClearAgentPlayback, callDuration, transcript.length]);
+
+  const closeSummary = useCallback(() => {
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    teardown();
+    setIsSummaryOpen(false);
+    setSummary(null);
+    setStatus("idle");
+    setTranscript([]);
+    setCallDuration(0);
+    currentCallIdRef.current = null;
+    callerDetailsRef.current = null;
   }, [teardown]);
 
   const playNext = useCallback(() => {
@@ -271,7 +367,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
             playingRef.current ||
             audioQueueRef.current.length > 0
           ) {
-            interruptAgent("user-voice-barge-in");
+            interruptAgent();
           }
         },
         onTurnEnd: () => {
@@ -304,6 +400,10 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const startCall = useCallback(
     async (patient?: CallerDetails) => {
       if (status !== "idle") return;
+      callerDetailsRef.current = patient ?? null;
+      setSummary(null);
+      setIsSummaryOpen(false);
+      setCallDuration(0);
       setFormOpen(false);
       setStatus("connecting");
       setError(null);
@@ -330,7 +430,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       socket.on(
         SocketEvent.CallReady,
-        ({ initialTurnId }: CallReadyPayload) => {
+        ({ callId, initialTurnId }: CallReadyPayload) => {
+          currentCallIdRef.current = callId;
           if (initialTurnId) turnIdRef.current = initialTurnId;
           setStatus("live");
           beginStreaming(socket, stream);
@@ -359,6 +460,24 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
           enqueueAudio(audio, meta);
         },
       );
+
+      socket.on(SocketEvent.CallSummary, (payload: CallSummaryPayload) => {
+        if (fallbackTimerRef.current) {
+          clearTimeout(fallbackTimerRef.current);
+          fallbackTimerRef.current = null;
+        }
+        if (payload.durationSec) {
+          setCallDuration(payload.durationSec);
+        }
+        setSummary(payload);
+        setIsSummaryOpen(true);
+        setStatus("idle");
+        if (socketRef.current) {
+          socketRef.current.removeAllListeners();
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+      });
 
       socket.on(SocketEvent.CallError, ({ message }) => {
         setProcessing(false);
@@ -401,7 +520,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CallContextValue>(
     () => ({
       status,
-      isOpen: status !== "idle",
+      isOpen: status !== "idle" || isSummaryOpen,
       formOpen,
       userSpeaking,
       agentSpeaking,
@@ -410,15 +529,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       muted,
       error,
       transcript,
+      summary,
+      isSummaryOpen,
+      callDuration,
       openForm,
       closeForm,
       startCall,
       startDirectCall,
       endCall,
+      closeSummary,
       toggleMute,
     }),
     [
       status,
+      isSummaryOpen,
       formOpen,
       userSpeaking,
       agentSpeaking,
@@ -427,11 +551,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       muted,
       error,
       transcript,
+      summary,
+      callDuration,
       openForm,
       closeForm,
       startCall,
       startDirectCall,
       endCall,
+      closeSummary,
       toggleMute,
     ],
   );

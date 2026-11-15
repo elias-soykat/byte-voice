@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Loader2,
   Mic,
   MicOff,
   PhoneOff,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useCall } from "@/hooks/useCall";
 import { useLanguage } from "@/context/language-context";
 import { CallOrb, type OrbMode } from "./call-orb";
+import { PostCallSummaryModal } from "./post-call-summary-modal";
 
 export function CallOverlay() {
   const {
@@ -26,13 +28,16 @@ export function CallOverlay() {
     micLevel,
     muted,
     transcript,
+    summary,
+    isSummaryOpen,
+    callDuration,
     endCall,
+    closeSummary,
     toggleMute,
   } = useCall();
 
   const { lang } = useLanguage();
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
-  const [duration, setDuration] = useState(0);
 
   // Lock body & document scroll completely while call is open
   useEffect(() => {
@@ -48,17 +53,6 @@ export function CallOverlay() {
       };
     }
   }, [isOpen]);
-
-  // Live call duration timer
-  useEffect(() => {
-    if (status === "live") {
-      const timer = setInterval(() => {
-        setDuration((prev) => prev + 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-    setDuration(0);
-  }, [status]);
 
   // Auto-scroll transcript to bottom smoothly on every new caption
   useEffect(() => {
@@ -81,6 +75,11 @@ export function CallOverlay() {
   const getStatusText = () => {
     if (status === "connecting") {
       return lang === "bn" ? "সংযুক্ত হচ্ছে…" : "Connecting to Clinic…";
+    }
+    if (status === "finalizing") {
+      return lang === "bn"
+        ? "কল সমাপ্ত · সারাংশ ও রেকর্ড প্রস্তুত হচ্ছে…"
+        : "Call ended · Finalizing summary…";
     }
     if (agentSpeaking) {
       return lang === "bn" ? "রিসেপশনিস্ট কথা বলছেন…" : "Receptionist speaking…";
@@ -138,8 +137,18 @@ export function CallOverlay() {
             </div>
 
             <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-xs text-teal-200">
-              <Radio className="size-3 text-teal-400 animate-pulse" />
-              <span>{formatDuration(duration)}</span>
+              <Radio
+                className={cn(
+                  "size-3 text-teal-400",
+                  status === "live" && "animate-pulse",
+                )}
+              />
+              <span>{formatDuration(callDuration)}</span>
+              {status === "finalizing" && (
+                <span className="ml-1 text-[10px] text-amber-300 font-sans font-medium">
+                  {lang === "bn" ? "(সমাপ্ত)" : "(Ended)"}
+                </span>
+              )}
             </div>
           </header>
 
@@ -150,7 +159,9 @@ export function CallOverlay() {
             {/* Status Pill */}
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/25 bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-300">
-                {agentSpeaking ? (
+                {status === "finalizing" ? (
+                  <Loader2 className="size-3.5 text-teal-300 animate-spin" />
+                ) : agentSpeaking ? (
                   <Volume2 className="size-3.5 text-teal-300 animate-pulse" />
                 ) : userSpeaking ? (
                   <Mic className="size-3.5 text-teal-300 animate-pulse" />
@@ -161,8 +172,28 @@ export function CallOverlay() {
               </span>
             </div>
 
-            {/* Compact Voice Orb */}
-            <CallOrb mode={mode} level={micLevel} size={84} />
+            {status === "finalizing" ? (
+              <div className="flex flex-col items-center gap-3 py-3">
+                <div className="relative flex size-14 items-center justify-center">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-400/20 opacity-75" />
+                  <span className="flex size-12 items-center justify-center rounded-full border border-teal-500/40 bg-teal-500/10 text-teal-300 shadow-lg shadow-teal-500/20">
+                    <Loader2 className="size-6 animate-spin text-teal-400" />
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">
+                    {lang === "bn" ? "কথোপকথন সমাপ্ত হয়েছে" : "Call Completed"}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-white/60 max-w-sm">
+                    {lang === "bn"
+                      ? "ক্লিনিক্যাল রেকর্ড ও এআই সারাংশ প্রস্তুত হচ্ছে…"
+                      : "Structuring clinical details & saving records to portal…"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <CallOrb mode={mode} level={micLevel} size={84} />
+            )}
 
             {/* Live Transcript Frosted Glass Card */}
             <div className="w-full max-w-xl sm:max-w-2xl">
@@ -223,38 +254,57 @@ export function CallOverlay() {
           {/* Bottom Action Dock: Controls & Security                    */}
           {/* ========================================================= */}
           <footer className="mx-auto flex flex-col items-center gap-2 pb-1">
-            <div className="flex items-center gap-4 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 backdrop-blur-xl shadow-xl">
-              <button
-                type="button"
-                onClick={toggleMute}
-                aria-label={muted ? "Unmute microphone" : "Mute microphone"}
-                title={muted ? "Unmute" : "Mute"}
-                className={cn(
-                  "flex size-11 items-center justify-center rounded-full border transition-all active:scale-95 cursor-pointer",
-                  muted
-                    ? "border-destructive/60 bg-destructive/25 text-rose-300 hover:bg-destructive/35"
-                    : "border-white/20 bg-white/10 text-white hover:bg-white/20 hover:scale-105",
-                )}
-              >
-                {muted ? <MicOff className="size-4.5" /> : <Mic className="size-4.5" />}
-              </button>
+            {status === "finalizing" ? (
+              <div className="flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-4 py-2 text-xs font-medium text-teal-300 shadow-md">
+                <Loader2 className="size-3.5 animate-spin text-teal-400" />
+                <span>
+                  {lang === "bn" ? "সারাংশ প্রস্তুত হচ্ছে…" : "Preparing summary…"}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 backdrop-blur-xl shadow-xl">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  aria-label={muted ? "Unmute microphone" : "Mute microphone"}
+                  title={muted ? "Unmute" : "Mute"}
+                  className={cn(
+                    "flex size-11 items-center justify-center rounded-full border transition-all active:scale-95 cursor-pointer",
+                    muted
+                      ? "border-destructive/60 bg-destructive/25 text-rose-300 hover:bg-destructive/35"
+                      : "border-white/20 bg-white/10 text-white hover:bg-white/20 hover:scale-105",
+                  )}
+                >
+                  {muted ? <MicOff className="size-4.5" /> : <Mic className="size-4.5" />}
+                </button>
 
-              <button
-                type="button"
-                onClick={endCall}
-                aria-label="End call"
-                title="End Call"
-                className="flex size-11 items-center justify-center rounded-full bg-rose-600 text-white shadow-md shadow-rose-600/30 transition-all hover:bg-rose-500 hover:scale-105 active:scale-95 cursor-pointer"
-              >
-                <PhoneOff className="size-4.5" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={endCall}
+                  aria-label="End call"
+                  title="End Call"
+                  className="flex size-11 items-center justify-center rounded-full bg-rose-600 text-white shadow-md shadow-rose-600/30 transition-all hover:bg-rose-500 hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <PhoneOff className="size-4.5" />
+                </button>
+              </div>
+            )}
 
             <div className="flex items-center gap-1.5 text-[10px] text-white/40">
               <Shield className="size-3 text-teal-400/70" />
               <span>Encrypted live voice stream · StrategyByte</span>
             </div>
           </footer>
+
+          {/* ========================================================= */}
+          {/* Post-Call Summary Modal                                    */}
+          {/* ========================================================= */}
+          <PostCallSummaryModal
+            isOpen={isSummaryOpen}
+            summary={summary}
+            durationSec={callDuration}
+            onClose={closeSummary}
+          />
         </motion.div>
       )}
     </AnimatePresence>

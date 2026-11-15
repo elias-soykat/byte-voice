@@ -67,21 +67,62 @@ export const registerSocketHandlers = (io: CallServer): void => {
       interruptSession(socket.id, payload?.turnId, payload?.agentPlaybackMs);
     });
 
-    const cleanup = (reason: string) => {
-      // endSession deletes from the Map and returns the session, so this is
-      // idempotent across call:end + disconnect — finalize runs exactly once.
+    const handleCallEnd = async () => {
+      // endSession deletes from the Map and returns the session, ensuring
+      // this is idempotent across call:end + subsequent disconnect.
+      const session = endSession(socket.id);
+      if (!session) return;
+
+      const seconds = Math.round((Date.now() - session.startedAt) / 1000);
+      console.log(
+        `[call] end ${session.callId} (call:end, ${seconds}s, ${session.bytesReceived} bytes)`,
+      );
+
+      try {
+        const summary = await finalizeCall(session);
+        if (socket.connected) {
+          socket.emit(SocketEvent.CallSummary, summary);
+        }
+      } catch (err) {
+        console.error(`[call] error finalizing call ${session.callId}:`, err);
+        if (socket.connected) {
+          socket.emit(SocketEvent.CallSummary, {
+            callId: session.callId,
+            durationSec: seconds,
+            patientName: session.patientName ?? null,
+            phone: null,
+            reasonForVisit: null,
+            preferredDateTime: null,
+            outcome: "INCOMPLETE",
+            appointment: null,
+            nextActions: {
+              appointmentRecorded: false,
+              patientDetailsSaved: false,
+              transcriptAvailable: session.transcript.length > 0,
+            },
+            notes: "Call ended. Details stored in database.",
+            status: "partial",
+            errorMessage: "Call saved, but summary processing failed.",
+          });
+        }
+      }
+    };
+
+    const handleDisconnect = () => {
+      // If already ended via call:end, endSession returns null and this is a no-op.
       const session = endSession(socket.id);
       if (session) {
         const seconds = Math.round((Date.now() - session.startedAt) / 1000);
         console.log(
-          `[call] end ${session.callId} (${reason}, ${seconds}s, ${session.bytesReceived} bytes)`,
+          `[call] disconnect ${session.callId} (${seconds}s, ${session.bytesReceived} bytes)`,
         );
-        // Persist the recording + transcript without blocking teardown.
         void finalizeCall(session);
       }
     };
 
-    socket.on(SocketEvent.CallEnd, () => cleanup("call:end"));
-    socket.on("disconnect", () => cleanup("disconnect"));
+    socket.on(SocketEvent.CallEnd, () => {
+      void handleCallEnd();
+    });
+    socket.on("disconnect", handleDisconnect);
   });
 };

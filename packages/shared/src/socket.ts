@@ -19,6 +19,7 @@ export const SocketEvent = {
   TtsAudio: "tts:audio",
   AgentSpeakingStart: "agent:speaking:start",
   AgentSpeakingStop: "agent:speaking:stop",
+  CallSummary: "call:summary",
   CallError: "call:error",
 } as const;
 
@@ -42,6 +43,30 @@ export type UserTurnEndPayload = { turnId?: number };
 export type UserInterruptPayload = { turnId?: number; agentPlaybackMs?: number };
 export type TtsAudioMeta = { turnId?: number };
 
+export type CallSummaryPayload = {
+  callId: string;
+  durationSec: number;
+  patientName?: string | null | undefined;
+  phone?: string | null | undefined;
+  reasonForVisit?: string | null | undefined;
+  preferredDateTime?: string | null | undefined;
+  outcome: "BOOKED" | "ENQUIRY" | "FOLLOW_UP_NEEDED" | "INCOMPLETE" | "FAILED";
+  appointment?: {
+    id?: string | undefined;
+    doctorName?: string | null | undefined;
+    doctorSpeciality?: string | null | undefined;
+    startTime?: string | null | undefined;
+  } | null | undefined;
+  nextActions: {
+    appointmentRecorded: boolean;
+    patientDetailsSaved: boolean;
+    transcriptAvailable: boolean;
+  };
+  notes?: string | null | undefined;
+  status: "success" | "partial" | "error";
+  errorMessage?: string | undefined;
+};
+
 /** Events the server emits to the client. */
 export interface ServerToClientEvents {
   "call:ready": (payload: CallReadyPayload) => void;
@@ -53,6 +78,8 @@ export interface ServerToClientEvents {
   "tts:audio": (audio: ArrayBuffer, meta?: TtsAudioMeta) => void;
   "agent:speaking:start": () => void;
   "agent:speaking:stop": () => void;
+  /** Finalized post-call clinical summary and outcome. */
+  "call:summary": (payload: CallSummaryPayload) => void;
   "call:error": (payload: CallErrorPayload) => void;
 }
 
