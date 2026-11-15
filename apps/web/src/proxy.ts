@@ -22,6 +22,5 @@ export const config = {
     "/analytics/:path*",
     "/calls/:path*",
     "/knowledge-base/:path*",
-    "/settings/:path*",
   ],
 };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Menu, Settings } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
 import { SearchInput } from "@/components/ui/search-input";
@@ -90,9 +90,6 @@ function Topbar() {
           <Bell className="size-5" />
           <span className="absolute top-2.5 right-2.5 size-2 rounded-full bg-emerald-500 ring-2 ring-surface" />
         </Button>
-        <Button variant="ghost" size="icon" aria-label="Settings" className="text-muted-foreground hover:text-foreground hover:bg-emerald-50/50">
-          <Settings className="size-5" />
-        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -121,7 +118,6 @@ function Topbar() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
