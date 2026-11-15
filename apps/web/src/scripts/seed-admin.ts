@@ -20,7 +20,12 @@ async function main() {
 
   // 1. Ensure Better Auth tables exist in PostgreSQL
   const { Pool } = await import("pg");
-  const directPool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const directPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes("localhost")
+      ? false
+      : { rejectUnauthorized: false },
+  });
   try {
     await directPool.query(`
       CREATE TABLE IF NOT EXISTS "user" (

@@ -50,6 +50,14 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok", service: "byte-care-api" });
+});
+
+app.get("/", (_req, res) => {
+  res.status(200).json({ status: "ok", message: "ByteCare Voice API is running" });
+});
+
 app.use("/api/v1/doctors", doctorsRouter);
 app.use("/api/v1/schedules", schedulesRouter);
 app.use("/api/v1/appointments", appointmentsRouter);
