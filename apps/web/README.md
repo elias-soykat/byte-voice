@@ -27,6 +27,11 @@ To learn more about Next.js, take a look at the following resources:
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
+## Production Deployment
+
+Deployed on Vercel at [https://byte-voice.vercel.app](https://byte-voice.vercel.app).
+Auto-deploys automatically on every push to the `master` branch.
+
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
 ## Deploy on Vercel
