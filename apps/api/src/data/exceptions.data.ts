@@ -13,6 +13,11 @@ export const createException = (data: CreateExceptionInput) =>
 export const findExceptionsByDoctor = (doctorId: string) =>
   prisma.scheduleException.findMany({ where: { doctorId } });
 
+export const findExceptionByDoctorAndDate = (doctorId: string, date: Date) =>
+  prisma.scheduleException.findFirst({
+    where: { doctorId, date },
+  });
+
 export const findExceptionById = (id: string) =>
   prisma.scheduleException.findUnique({ where: { id } });
 

@@ -7,6 +7,15 @@ import * as appointmentsData from "../../data/appointments.data";
 import * as doctorsData from "../../data/doctors.data";
 import { DEFAULT_APPOINTMENT_MINUTES } from "../../config/agents";
 import { sendAppointmentConfirmation } from "../../libs/mailer";
+import { AppError } from "../../errors/AppError";
+import {
+  validateDoctorSlot,
+  getAvailableSlotsForDay,
+  getDhakaDateTimeComponents,
+  parseDhakaDate,
+  formatTimeBn,
+  DAY_OF_WEEK_BN,
+} from "../../helpers/availability";
 
 // Bengali dental term mapper to help query matching
 const BENGALI_SPECIALITY_MAP: Record<string, string> = {
@@ -77,6 +86,105 @@ export const listDoctorsTool = tool(
   },
 );
 
+export const checkDoctorAvailabilityTool = tool(
+  async ({
+    doctorQuery,
+    doctorId,
+    date,
+  }: {
+    doctorQuery?: string;
+    doctorId?: string;
+    date?: string;
+  }) => {
+    let resolvedId = doctorId;
+    let doctor = null;
+
+    if (resolvedId) {
+      doctor = await doctorsData.findDoctorById(resolvedId);
+    } else if (doctorQuery) {
+      const matches = await doctorsData.findDoctors({
+        skip: 0,
+        take: 1,
+        where: doctorSearchWhere(doctorQuery),
+      });
+      doctor = matches[0] ?? null;
+      if (doctor) {
+        doctor = await doctorsData.findDoctorById(doctor.id);
+      }
+    }
+
+    if (!doctor) {
+      const all = await doctorsData.findDoctors({
+        skip: 0,
+        take: 10,
+        where: { isActive: true },
+      });
+      const list = all.map((d) => `${d.name} (${d.speciality})`).join(", ");
+      return `কোনো ডাক্তার খুঁজে পাওয়া যায়নি। আমাদের ক্লিনিকে উপলব্ধ ডাক্তারগণ: ${list}।`;
+    }
+
+    if (!doctor.isActive) {
+      return `দুঃখিত, ডাঃ ${doctor.name} বর্তমানে সক্রিয় নন।`;
+    }
+
+    // If a specific date is queried
+    if (date) {
+      const parsedDate = parseDhakaDate(date);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return "প্রদত্ত তারিখটি সঠিক নয়। অনুগ্রহ করে YYYY-MM-DD ফরম্যাটে বা স্পষ্ট করে বলুন।";
+      }
+
+      const { dateStr, dayOfWeek } = getDhakaDateTimeComponents(parsedDate);
+      const dayBn = DAY_OF_WEEK_BN[dayOfWeek] || dayOfWeek;
+
+      // Check validation for day start to see if doctor is on leave or not working day
+      const validation = await validateDoctorSlot(doctor.id, parsedDate, 30);
+
+      if (validation.code === "ON_LEAVE" || validation.code === "NOT_WORKING_DAY") {
+        return validation.messageBn;
+      }
+
+      const availableSlots = await getAvailableSlotsForDay(doctor.id, dateStr, 30);
+      if (availableSlots.length === 0) {
+        return `ডাঃ ${doctor.name} ${dateStr} (${dayBn}) তারিখে সব অ্যাপয়েন্টমেন্ট বুকড রয়েছে। আপনি কি অন্য কোনো দিন দেখাতে চান?`;
+      }
+
+      return `ডাঃ ${doctor.name} (${doctor.speciality}) ${dateStr} (${dayBn}) তারিখে চেম্বারে উপলব্ধ। ফাঁকা সময়সমূহ: ${availableSlots.slice(0, 8).join(", ")}।`;
+    }
+
+    // If no specific date, return weekly schedule summary
+    const schedules = doctor.schedules;
+    if (!schedules || schedules.length === 0) {
+      return `ডাঃ ${doctor.name}-এর কোনো সাপ্তাহিক সময়সূচী পাওয়া যায়নি।`;
+    }
+
+    const scheduleList = schedules
+      .map(
+        (s) =>
+          `${DAY_OF_WEEK_BN[s.dayOfWeek] || s.dayOfWeek}: ${formatTimeBn(s.startTime)} (${s.startTime}) - ${formatTimeBn(s.endTime)} (${s.endTime})`,
+      )
+      .join(";\n");
+
+    return `ডাঃ ${doctor.name} (${doctor.speciality}) এর সাপ্তাহিক চেম্বার সময়সূচী:\n${scheduleList}\n\nআপনি কোন দিন দেখাতে চান বলুন, আমি সেই দিনের ফাঁকা স্লট জানিয়ে দিচ্ছি।`;
+  },
+  {
+    name: "check_doctor_availability",
+    description:
+      "Check a doctor's weekly working days, operating hours, leave status, and available booking slots at Dhaka Dental Care. Use when caller asks when a doctor sits or if they are free on a certain day/time.",
+    schema: z.object({
+      doctorQuery: z
+        .string()
+        .optional()
+        .describe("doctor name or speciality (e.g. 'Dr. Tanvir', 'রুট ক্যানেল', 'Orthodontics')"),
+      doctorId: z.string().optional().describe("doctor ID if already known"),
+      date: z
+        .string()
+        .optional()
+        .describe("specific date to check, e.g. '2026-11-15' or ISO string"),
+    }),
+  },
+);
+
 export type BookAppointmentContext = {
   patientName?: string;
   patientEmail?: string;
@@ -142,7 +250,7 @@ export const makeBookAppointmentTool = (ctx: BookAppointmentContext = {}) =>
         doctorSpeciality = first.speciality;
       }
 
-      const start = new Date(startTimeISO);
+      const start = parseDhakaDate(startTimeISO);
       if (Number.isNaN(start.getTime())) {
         return "startTimeISO is not a valid date-time.";
       }
@@ -167,32 +275,31 @@ export const makeBookAppointmentTool = (ctx: BookAppointmentContext = {}) =>
         }
       }
 
-      // Overlap check
-      const clash = await appointmentsData.findAppointments({
-        skip: 0,
-        take: 1,
-        where: {
-          doctorId: resolvedId,
-          status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.RESCHEDULED] },
-          startTime: { lt: end },
-          endTime: { gt: start },
-        },
-      });
-      if (clash.length > 0) {
-        return `Dr. ${doctorName} already has an appointment overlapping that time. Please suggest another time slot.`;
+      // 5-layer availability check: doctor active, leave exceptions, weekly hours, appointment clashes
+      const validation = await validateDoctorSlot(resolvedId, start, minutes);
+      if (!validation.isValid) {
+        return validation.messageBn;
       }
 
-      const appointment = await appointmentsData.createAppointment({
-        doctorId: resolvedId,
-        patientName: finalName,
-        startTime: start,
-        endTime: end,
-        status: AppointmentStatus.BOOKED,
-        ...(ctx.callId ? { callId: ctx.callId } : {}),
-        ...(ctx.patientEmail ? { patientEmail: ctx.patientEmail } : {}),
-        ...(finalPhone ? { patientPhone: finalPhone } : {}),
-        ...(reason ? { reason } : {}),
-      });
+      let appointment;
+      try {
+        appointment = await appointmentsData.createAppointmentWithConflictCheck({
+          doctorId: resolvedId,
+          patientName: finalName,
+          startTime: start,
+          endTime: end,
+          status: AppointmentStatus.BOOKED,
+          ...(ctx.callId ? { callId: ctx.callId } : {}),
+          ...(ctx.patientEmail ? { patientEmail: ctx.patientEmail } : {}),
+          ...(finalPhone ? { patientPhone: finalPhone } : {}),
+          ...(reason ? { reason } : {}),
+        });
+      } catch (err: unknown) {
+        if (err instanceof AppError && err.code === "SLOT_ALREADY_BOOKED") {
+          return `দুঃখিত, ওই সময়ে ডাঃ ${doctorName}-এর আরেকটি অ্যাপয়েন্টমেন্ট সবেমাত্র বুক হয়ে গেছে। অনুগ্রহ করে অন্য কোনো সময় বলুন।`;
+        }
+        throw err;
+      }
 
       if (ctx.patientEmail) {
         await sendAppointmentConfirmation({
@@ -284,7 +391,7 @@ export const makeRescheduleAppointmentTool = (ctx: BookAppointmentContext = {}) 
         return "আপনার কোনো সক্রিয় অ্যাপয়েন্টমেন্ট খুঁজে পাওয়া যায়নি। অনুগ্রহ করে আপনার নাম অথবা ফোন নম্বর নিশ্চিত করুন।";
       }
 
-      const start = new Date(newStartTimeISO);
+      const start = parseDhakaDate(newStartTimeISO);
       if (Number.isNaN(start.getTime())) {
         return "নতুন সময়টি সঠিক নয় (Invalid date-time format).";
       }
@@ -292,29 +399,30 @@ export const makeRescheduleAppointmentTool = (ctx: BookAppointmentContext = {}) 
       const minutes = durationMinutes ?? DEFAULT_APPOINTMENT_MINUTES;
       const end = new Date(start.getTime() + minutes * 60_000);
 
-      // Check clash with doctor
-      const clash = await appointmentsData.findAppointments({
-        skip: 0,
-        take: 1,
-        where: {
-          id: { not: targetAppointment.id },
-          doctorId: targetAppointment.doctorId,
-          status: { in: [AppointmentStatus.BOOKED, AppointmentStatus.RESCHEDULED] },
-          startTime: { lt: end },
-          endTime: { gt: start },
-        },
-      });
-
-      if (clash.length > 0) {
-        return `দুঃখিত, ওই সময়ে ডাক্তারের অন্য একটি অ্যাপয়েন্টমেন্ট রয়েছে। দয়া করে অন্য কোনো সময় বা দিন বলুন।`;
+      // Validate against doctor's schedule, exceptions, and clash (excluding target appointment)
+      const validation = await validateDoctorSlot(
+        targetAppointment.doctorId,
+        start,
+        minutes,
+        targetAppointment.id,
+      );
+      if (!validation.isValid) {
+        return validation.messageBn;
       }
 
-      await appointmentsData.updateAppointment(targetAppointment.id, {
-        startTime: start,
-        endTime: end,
-        status: AppointmentStatus.RESCHEDULED,
-        ...(ctx.callId ? { callId: ctx.callId } : {}),
-      });
+      try {
+        await appointmentsData.rescheduleAppointmentWithConflictCheck(targetAppointment.id, {
+          startTime: start,
+          endTime: end,
+          status: AppointmentStatus.RESCHEDULED,
+          ...(ctx.callId ? { callId: ctx.callId } : {}),
+        });
+      } catch (err: unknown) {
+        if (err instanceof AppError && err.code === "SLOT_ALREADY_BOOKED") {
+          return `দুঃখিত, ওই সময়ে ডাক্তারের অন্য একটি অ্যাপয়েন্টমেন্ট সবেমাত্র বুক হয়ে গেছে। দয়া করে অন্য কোনো সময় বা দিন বলুন।`;
+        }
+        throw err;
+      }
 
       const doctorName = targetAppointment.doctor?.name ?? "ডাক্তার";
       return `আপনার অ্যাপয়েন্টমেন্টটি সফলভাবে পুনর্নির্ধারণ করা হয়েছে! ডাক্তার: ${doctorName}, নতুন সময়: ${start.toLocaleString("bn-BD")}.`;

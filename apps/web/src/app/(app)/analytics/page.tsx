@@ -136,12 +136,6 @@ export default function AnalyticsPage() {
             )}
           </div>
 
-          {/* Phase 2 (AI) metrics — placeholders */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <SoonCard label="Total Calls" icon={PhoneCall} />
-            <SoonCard label="AI Resolution Rate" icon={Activity} />
-          </div>
-
           {/* Charts */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
             <ChartCard title="Appointments Trend" className="lg:col-span-2">

@@ -14,6 +14,7 @@ import {
 import { chatModel } from "../libs/chatModel";
 import {
   listDoctorsTool,
+  checkDoctorAvailabilityTool,
   makeBookAppointmentTool,
   makeCancelAppointmentTool,
   makeRescheduleAppointmentTool,
@@ -47,12 +48,14 @@ export const appointmentNode = async (
 
   const tools = [
     listDoctorsTool,
+    checkDoctorAvailabilityTool,
     bookAppointmentTool,
     rescheduleAppointmentTool,
     cancelAppointmentTool,
   ];
   const toolsByName: Record<string, StructuredToolInterface> = {
     list_doctors: listDoctorsTool,
+    check_doctor_availability: checkDoctorAvailabilityTool,
     book_appointment: bookAppointmentTool,
     reschedule_appointment: rescheduleAppointmentTool,
     cancel_appointment: cancelAppointmentTool,

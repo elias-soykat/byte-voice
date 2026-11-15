@@ -8,6 +8,7 @@
     "build": "prisma generate && tsc",
     "check-types": "tsc --noEmit",
     "lint": "tsc --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "start": "node dist/index.js",
     "postinstall": "prisma generate",
     "migrate:dev": "prisma migrate dev",

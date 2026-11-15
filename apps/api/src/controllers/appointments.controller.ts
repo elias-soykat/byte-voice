@@ -8,12 +8,34 @@ import { Prisma } from "../generated/prisma/client";
 import * as appointmentsData from "../data/appointments.data";
 import { AppError } from "../errors/AppError";
 import { sendSuccess, sendError } from "../helpers/apiResponse";
+import { validateDoctorSlot } from "../helpers/availability";
 
 // createAppointment
 export const createAppointment = async (req: Request, res: Response) => {
   try {
     const data = createAppointmentSchema.parse(req.body);
-    const appointment = await appointmentsData.createAppointment(data);
+
+    const durationMinutes = Math.round(
+      (data.endTime.getTime() - data.startTime.getTime()) / 60_000,
+    );
+
+    const validation = await validateDoctorSlot(
+      data.doctorId,
+      data.startTime,
+      durationMinutes,
+    );
+
+    if (!validation.isValid) {
+      throw new AppError(
+        validation.code || "SLOT_UNAVAILABLE",
+        validation.messageEn,
+        400,
+      );
+    }
+
+    const appointment =
+      await appointmentsData.createAppointmentWithConflictCheck(data);
+
     return sendSuccess(
       res,
       201,
@@ -89,10 +111,43 @@ export const updateAppointment = async (
 ) => {
   try {
     const data = updateAppointmentSchema.parse(req.body);
-    const appointment = await appointmentsData.updateAppointment(
-      req.params.id,
-      data,
-    );
+
+    if (data.startTime || data.endTime || data.doctorId) {
+      const existing = await appointmentsData.findAppointmentById(req.params.id);
+      if (!existing) {
+        throw new AppError("APPOINTMENT_NOT_FOUND", "No such appointment", 404);
+      }
+
+      const targetDoctorId = data.doctorId ?? existing.doctorId;
+      const targetStart = data.startTime ?? existing.startTime;
+      const targetEnd = data.endTime ?? existing.endTime;
+
+      const durationMinutes = Math.round(
+        (targetEnd.getTime() - targetStart.getTime()) / 60_000,
+      );
+
+      const validation = await validateDoctorSlot(
+        targetDoctorId,
+        targetStart,
+        durationMinutes,
+        req.params.id,
+      );
+
+      if (!validation.isValid) {
+        throw new AppError(
+          validation.code || "SLOT_UNAVAILABLE",
+          validation.messageEn,
+          400,
+        );
+      }
+    }
+
+    const appointment =
+      await appointmentsData.rescheduleAppointmentWithConflictCheck(
+        req.params.id,
+        data,
+      );
+
     return sendSuccess(
       res,
       200,

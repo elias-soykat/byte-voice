@@ -8,6 +8,7 @@ import { Prisma } from "../generated/prisma/client";
 import * as doctorsData from "../data/doctors.data";
 import { AppError } from "../errors/AppError";
 import { sendSuccess, sendError } from "../helpers/apiResponse";
+import { getAvailableSlotsForDay } from "../helpers/availability";
 
 // createDoctor
 export const createDoctor = async (req: Request, res: Response) => {
@@ -90,6 +91,39 @@ export const deleteDoctor = async (
   try {
     await doctorsData.deleteDoctor(req.params.id);
     return sendSuccess(res, 200, "Doctor deleted successfully");
+  } catch (error) {
+    return sendError(res, error);
+  }
+};
+
+// getDoctorAvailability By Id
+export const getDoctorAvailability = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  try {
+    const { id } = req.params;
+    const dateQuery =
+      typeof req.query.date === "string" ? req.query.date : undefined;
+
+    const doctor = await doctorsData.findDoctorById(id);
+    if (!doctor) {
+      throw new AppError("DOCTOR_NOT_FOUND", "No such doctor", 404);
+    }
+
+    if (dateQuery) {
+      const availableSlots = await getAvailableSlotsForDay(id, dateQuery);
+      return sendSuccess(res, 200, "Doctor availability fetched successfully", {
+        doctorId: id,
+        date: dateQuery,
+        availableSlots,
+      });
+    }
+
+    return sendSuccess(res, 200, "Doctor schedules fetched successfully", {
+      doctorId: id,
+      schedules: doctor.schedules,
+    });
   } catch (error) {
     return sendError(res, error);
   }
