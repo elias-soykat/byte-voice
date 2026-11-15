@@ -6,10 +6,6 @@ export const WEB_ORIGIN = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 
 export const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 
-export const PINECONE_API_KEY = process.env.PINECONE_API_KEY ?? "";
-
-export const PINECONE_INDEX = process.env.PINECONE_INDEX ?? "";
-
 export const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
 
 export const RESEND_FROM = process.env.RESEND_FROM ?? "onboarding@resend.dev";

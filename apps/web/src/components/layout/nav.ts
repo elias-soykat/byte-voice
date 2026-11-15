@@ -3,7 +3,6 @@ import {
   Stethoscope,
   CalendarDays,
   PhoneCall,
-  BookOpen,
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
@@ -19,6 +18,5 @@ export const navItems: NavItem[] = [
   { label: "Doctors", href: "/doctors", icon: Stethoscope },
   { label: "Appointments", href: "/appointments", icon: CalendarDays },
   { label: "Calls", href: "/calls", icon: PhoneCall },
-  { label: "Knowledge Base", href: "/knowledge-base", icon: BookOpen },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
 ];

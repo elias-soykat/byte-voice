@@ -15,7 +15,6 @@ import schedulesRouter from "./routes/schedules.routes";
 import appointmentsRouter from "./routes/appointments.routes";
 import exceptionsRouter from "./routes/exceptions.routes";
 import analyticsRouter from "./routes/analytics.routes";
-import knowledgeBaseRouter from "./routes/knowledgeBase.routes";
 import agentRouter from "./routes/agent.routes";
 import callsRouter from "./routes/call.routes";
 import { errorHandler } from "./middleware/errorHandler";
@@ -60,7 +59,6 @@ app.use("/api/v1/schedules", schedulesRouter);
 app.use("/api/v1/appointments", appointmentsRouter);
 app.use("/api/v1/exceptions", exceptionsRouter);
 app.use("/api/v1/analytics", analyticsRouter);
-app.use("/api/v1/knowledgeBase", knowledgeBaseRouter);
 app.use("/api/v1/agent", agentRouter);
 app.use("/api/v1/calls", callsRouter);
 

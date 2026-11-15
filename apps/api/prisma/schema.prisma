@@ -124,19 +124,6 @@ model ScheduleException {
   @@unique([doctorId, date])
 }
 
-model Document {
-  id         String   @id @default(cuid())
-  fileName   String
-  fileType   String // "pdf" | "docx" | "txt" | "md"
-  fileSize   Int
-  content    String // full extracted text
-  chunkCount Int      @default(0)
-  status     String   @default("READY") // PROCESSING | READY | FAILED
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model Call {
   id           String       @id @default(cuid())
   callId       String       @unique // the socket session uuid

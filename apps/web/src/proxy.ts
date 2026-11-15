@@ -21,6 +21,5 @@ export const config = {
     "/appointments/:path*",
     "/analytics/:path*",
     "/calls/:path*",
-    "/knowledge-base/:path*",
   ],
 };

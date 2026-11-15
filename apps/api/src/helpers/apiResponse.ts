@@ -1,6 +1,5 @@
 import { Response } from "express";
 import { ZodError } from "zod";
-import { MulterError } from "multer";
 import { Prisma } from "../generated/prisma/client";
 import { AppError } from "../errors/AppError";
 
@@ -22,14 +21,6 @@ export const sendError = (res: Response, error: unknown) => {
     return res
       .status(400)
       .json({ success: false, message: "Validation failed", errors: error.issues });
-  }
-
-  if (error instanceof MulterError) {
-    const message =
-      error.code === "LIMIT_FILE_SIZE"
-        ? "File is too large"
-        : "File upload failed";
-    return res.status(400).json({ success: false, message });
   }
 
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

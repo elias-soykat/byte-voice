@@ -3,7 +3,6 @@
 export const OPENAI_CHAT_MODEL = "gpt-4o";
 export const OPENAI_ROUTER_MODEL = "gpt-4o-mini";
 
-export const FAQ_TOP_K = 4;
 export const DEFAULT_APPOINTMENT_MINUTES = 30;
 export const APPOINTMENT_TOOL_MAX_ITERATIONS = 4;
 
